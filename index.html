@@ -1068,7 +1068,7 @@ service cloud.firestore {
                             customer_name: form.children[1].value,
                             date: firebase.firestore.Timestamp.fromDate(new Date(form.children[2].value + 'T00:00:00')),
                             potential_sales: parseFloat(form.children[3].value),
-                            remarks: form.children[4].value
+                            remarks: form.children[4].value,
                         };
                         try {
                             await db.collection('future_activities').doc(id).update(updatedData);
