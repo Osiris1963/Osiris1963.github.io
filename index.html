@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>McDonald's San Carlos 688 Forecaster</title>
+    <title>McDonald's San Carlos 688</title>
     <!-- Chosen Palette: McDonald's Professional (Warm Gray, Red, Yellow, Dark Text) -->
     <!-- Application Structure Plan: The SPA uses a fixed top navigation bar to switch between content sections, mimicking the logical flow of the original app's tabs. This design was chosen because it provides clear, persistent navigation, allowing users to easily move between the main forecast 'Dashboard', component 'Insights', and performance 'Evaluator' without losing context. All content is dynamically rendered into a single main content area, making it a true single-page application focused on usability and a seamless user flow. -->
     <!-- Visualization & Content Choices: Data from the report is presented using Chart.js for all visualizations to maintain a consistent look and feel. Goal: Show Change -> Viz: A dual-axis line chart is used on the Dashboard to show sales/customer trends. Interaction: Hover tooltips provide specific data points. Goal: Organize/Explain -> Viz: A waterfall chart on the Insights page breaks down forecast components. Interaction: A dropdown filters the view by date. Goal: Compare -> Viz: Paired line charts on the Evaluator page compare actuals vs. forecasts. Interaction: Toggles filter the time range. Data management is handled via styled HTML forms and cards, providing a clear and standard interface. This approach avoids proscribed libraries and focuses on universally understood interactions. -->
@@ -88,15 +88,38 @@
 </head>
 <body class="text-gray-800">
 
-    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-75 flex-col items-center justify-center z-50 hidden">
         <div class="text-center p-4">
             <svg class="animate-spin h-10 w-10 text-[#DA291C] mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <p id="loading-text" class="mt-4 text-lg font-semibold text-gray-700">Authenticating...</p>
+            <p id="loading-text" class="mt-4 text-lg font-semibold text-gray-700">Loading...</p>
         </div>
     </div>
+    
+    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gray-100">
+        <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-lg">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/McDonald%27s_Golden_Arches.svg/1200px-McDonald%27s_Golden_Arches.svg.png" alt="Logo" class="h-12 w-auto mx-auto mb-6">
+            <h2 class="text-2xl font-bold text-center mb-1">Welcome Back</h2>
+            <p class="text-center text-gray-500 mb-6">Please sign in to access the forecaster.</p>
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Username (Email)</label>
+                    <input type="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500">
+                </div>
+                <div id="login-error" class="text-sm text-red-600 h-auto"></div>
+                <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#DA291C] hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    Sign In
+                </button>
+            </form>
+        </div>
+    </div>
+
 
     <div id="app-container" class="min-h-screen flex-col hidden">
         <!-- Header -->
@@ -105,34 +128,36 @@
                 <div class="flex items-center justify-between h-20">
                     <div class="flex items-center space-x-4">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/McDonald%27s_Golden_Arches.svg/1200px-McDonald%27s_Golden_Arches.svg.png" alt="Logo" class="h-8 w-auto">
-                        <h1 class="text-xl md:text-2xl font-bold text-gray-800">McDonald's San Carlos 688 Forecaster</h1>
+                        <h1 class="text-xl md:text-2xl font-bold text-gray-800">McDonald's San Carlos 688</h1>
                     </div>
-                     <nav class="hidden md:flex flex-wrap items-center text-base justify-center">
+                     <nav id="main-nav" class="hidden md:flex flex-wrap items-center text-base justify-center">
                         <button data-view="dashboard" class="nav-button active px-3 py-2 rounded-lg font-semibold">Dashboard</button>
                         <button data-view="insights" class="nav-button px-3 py-2 rounded-lg font-semibold">Insights</button>
                         <button data-view="evaluator" class="nav-button px-3 py-2 rounded-lg font-semibold">Evaluator</button>
                         <button data-view="datamgmt" class="nav-button px-3 py-2 rounded-lg font-semibold">Add Data</button>
                         <button data-view="activities" class="nav-button px-3 py-2 rounded-lg font-semibold">Activities</button>
                         <button data-view="historical" class="nav-button px-3 py-2 rounded-lg font-semibold">History</button>
-                        <button data-view="admin" class="nav-button px-3 py-2 rounded-lg font-semibold">Admin</button>
+                        <button data-view="admin" class="nav-button px-3 py-2 rounded-lg font-semibold hidden">Admin</button>
                     </nav>
-                     <button id="refresh-data-btn" class="hidden md:flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" /></svg>
-                        <span>Refresh</span>
-                    </button>
+                     <div class="flex items-center space-x-4">
+                        <p id="user-greeting" class="hidden md:block text-sm font-semibold"></p>
+                        <button id="logout-btn" class="hidden md:flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition">
+                            <span>Logout</span>
+                        </button>
+                     </div>
                 </div>
             </div>
         </header>
         
         <!-- Mobile Navigation -->
-        <nav class="md:hidden bg-white shadow-md p-2 grid grid-cols-3 gap-1 sticky top-20 z-10">
+        <nav id="mobile-nav" class="md:hidden bg-white shadow-md p-2 grid grid-cols-3 gap-1 sticky top-0 z-10">
             <button data-view="dashboard" class="nav-button active flex-1 text-sm py-2 rounded-lg font-semibold">Dashboard</button>
             <button data-view="insights" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">Insights</button>
             <button data-view="evaluator" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">Evaluator</button>
             <button data-view="datamgmt" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">Add Data</button>
             <button data-view="activities" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">Activities</button>
             <button data-view="historical" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">History</button>
-            <button data-view="admin" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">Admin</button>
+            <button data-view="admin" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold hidden">Admin</button>
         </nav>
 
 
@@ -235,40 +260,56 @@
             <section id="datamgmt-section" class="view hidden">
                  <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Add New Data</h2>
-                    <p class="text-gray-600">Add new daily records to improve forecast accuracy.</p>
+                    <p class="text-gray-600">Add new daily records and future activities to improve forecast accuracy.</p>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-                    <h3 class="text-xl font-bold mb-4">Add New Daily Record</h3>
-                    <form id="daily-record-form" class="space-y-4">
-                        <div>
-                            <label for="record-date" class="block font-semibold mb-1">Date</label>
-                            <input type="date" id="record-date" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                        <h3 class="text-xl font-bold mb-4">Add New Daily Record</h3>
+                        <form id="daily-record-form" class="space-y-4">
                             <div>
-                                <label for="record-sales" class="block font-semibold mb-1">Total Sales (₱)</label>
-                                <input type="number" step="0.01" id="record-sales" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                <label for="record-date" class="block font-semibold mb-1">Date</label>
+                                <input type="date" id="record-date" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
                             </div>
-                            <div>
-                                <label for="record-customers" class="block font-semibold mb-1">Customers</label>
-                                <input type="number" id="record-customers" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="record-sales" class="block font-semibold mb-1">Total Sales (₱)</label>
+                                    <input type="number" step="0.01" id="record-sales" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                </div>
+                                <div>
+                                    <label for="record-customers" class="block font-semibold mb-1">Customers</label>
+                                    <input type="number" id="record-customers" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                </div>
+                                <div>
+                                    <label for="record-addons" class="block font-semibold mb-1">Add-on Sales (₱)</label>
+                                    <input type="number" step="0.01" id="record-addons" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                </div>
+                                <div>
+                                    <label for="record-weather" class="block font-semibold mb-1">Weather</label>
+                                    <select id="record-weather" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                        <option>Sunny</option>
+                                        <option>Cloudy</option>
+                                        <option>Rainy</option>
+                                        <option>Storm</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div>
-                                <label for="record-addons" class="block font-semibold mb-1">Add-on Sales (₱)</label>
-                                <input type="number" step="0.01" id="record-addons" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                             <button type="submit" class="w-full bg-[#DA291C] text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition duration-300">Save Daily Record</button>
+                        </form>
+                    </div>
+                     <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                        <h3 class="text-xl font-bold mb-4">Add Future Event</h3>
+                        <form id="event-form" class="space-y-4">
+                             <div>
+                                <label for="event-name" class="block font-semibold mb-1">Event Name</label>
+                                <input type="text" id="event-name" placeholder="e.g., San Carlos Charter Day" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
                             </div>
-                            <div>
-                                <label for="record-weather" class="block font-semibold mb-1">Weather</label>
-                                <select id="record-weather" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
-                                    <option>Sunny</option>
-                                    <option>Cloudy</option>
-                                    <option>Rainy</option>
-                                    <option>Storm</option>
-                                </select>
+                             <div>
+                                <label for="event-date" class="block font-semibold mb-1">Date</label>
+                                <input type="date" id="event-date" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
                             </div>
-                        </div>
-                            <button type="submit" class="w-full bg-[#DA291C] text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition duration-300">Save Daily Record</button>
-                    </form>
+                            <button type="submit" class="w-full bg-gray-800 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-900 transition duration-300">Save Event</button>
+                        </form>
+                    </div>
                 </div>
             </section>
             
@@ -284,7 +325,11 @@
                         <form id="activity-form" class="space-y-4">
                              <div>
                                 <label for="activity-name" class="block font-semibold mb-1">Activity Name</label>
-                                <input type="text" id="activity-name" placeholder="e.g., Twister Fries Launch" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                <input type="text" id="activity-name" placeholder="e.g., Catering for Birthday" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                            </div>
+                            <div>
+                                <label for="customer-name" class="block font-semibold mb-1">Customer Name</label>
+                                <input type="text" id="customer-name" placeholder="e.g., John Doe" class="w-full p-2 rounded-lg border-2 border-gray-200">
                             </div>
                              <div class="grid grid-cols-2 gap-4">
                                 <div>
@@ -292,9 +337,18 @@
                                     <input type="date" id="activity-date" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
                                 </div>
                                 <div>
-                                    <label for="activity-sales" class="block font-semibold mb-1">Est. Sales Impact (₱)</label>
+                                    <label for="activity-sales" class="block font-semibold mb-1">Est. Sales (₱)</label>
                                     <input type="number" step="0.01" id="activity-sales" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
                                 </div>
+                            </div>
+                             <div>
+                                <label for="activity-status" class="block font-semibold mb-1">Status</label>
+                                <select id="activity-status" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                    <option>Confirmed</option>
+                                    <option>Needs Follow-up</option>
+                                    <option>Tentative</option>
+                                    <option>Cancelled</option>
+                                </select>
                             </div>
                             <button type="submit" class="w-full bg-gray-800 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-900 transition duration-300">Save Activity</button>
                         </form>
@@ -375,6 +429,7 @@
                 activitiesData: null,
                 historicalData: null,
                 usersData: null,
+                accessLevel: 3, // Default to viewer
             };
             
             // --- TOAST NOTIFICATION ---
@@ -398,6 +453,7 @@
             // --- DATA FETCHING & PROCESSING ---
             async function loadAppData() {
                 try {
+                    document.getElementById('loading-overlay').style.display = 'flex';
                     document.getElementById('loading-text').textContent = 'Loading All Application Data...';
                     
                     const [logSnapshot, historicalSnapshot, activitiesSnapshot, usersSnapshot] = await Promise.all([
@@ -454,7 +510,6 @@
                     appState.evaluationData = mergedEvalData.sort((a,b) => a.date - b.date);
 
                     document.getElementById('loading-overlay').style.display = 'none';
-                    document.getElementById('app-container').style.display = 'flex';
                     
                     updateView();
 
@@ -676,7 +731,7 @@ service cloud.firestore {
                     contentContainer.innerHTML = '';
                     const monthActivities = activitiesByMonth[month];
                     
-                    const totalSales = monthActivities.reduce((sum, act) => sum + act.potential_sales, 0);
+                    const totalSales = monthActivities.reduce((sum, act) => sum + (act.potential_sales || 0), 0);
                     const unconfirmed = monthActivities.filter(act => act.remarks !== 'Confirmed').length;
 
                     const summary = document.createElement('div');
@@ -732,14 +787,16 @@ service cloud.firestore {
                             </div>
                         </div>
                         <div class="mt-2 grid grid-cols-2 gap-2 text-sm">
-                            <p><strong>Est. Sales:</strong> ₱${activity.potential_sales.toLocaleString()}</p>
-                            <p><strong>Status:</strong> ${activity.remarks}</p>
+                            <p><strong>Est. Sales:</strong> ₱${(activity.potential_sales || 0).toLocaleString()}</p>
+                            <p><strong>Status:</strong> ${activity.remarks || 'N/A'}</p>
+                            <p><strong>Customer:</strong> ${activity.customer_name || 'N/A'}</p>
                         </div>
                     </div>
                     <form id="edit-form-${activity.id}" class="hidden space-y-2 mt-4">
-                        <input type="text" value="${activity.activity_name}" class="w-full p-2 border rounded">
+                        <input type="text" value="${activity.activity_name}" class="w-full p-2 border rounded" placeholder="Activity Name">
+                        <input type="text" value="${activity.customer_name || ''}" class="w-full p-2 border rounded" placeholder="Customer Name">
                         <input type="date" value="${date.toISOString().split('T')[0]}" class="w-full p-2 border rounded">
-                        <input type="number" value="${activity.potential_sales}" class="w-full p-2 border rounded">
+                        <input type="number" value="${activity.potential_sales}" class="w-full p-2 border rounded" placeholder="Potential Sales">
                         <select class="w-full p-2 border rounded">
                             <option ${activity.remarks === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
                             <option ${activity.remarks === 'Needs Follow-up' ? 'selected' : ''}>Needs Follow-up</option>
@@ -837,7 +894,7 @@ service cloud.firestore {
                 
                 const updateFilter = () => {
                     const year = yearSelect.value ? parseInt(yearSelect.value) : null;
-                    const month = monthSelect.value ? parseInt(monthSelect.value) : null;
+                    const month = monthSelect.value !== "" ? parseInt(monthSelect.value) : null;
                     renderHistorical(year, month);
                 };
 
@@ -877,193 +934,245 @@ service cloud.firestore {
 
 
             // --- EVENT LISTENERS ---
-            document.getElementById('refresh-data-btn').addEventListener('click', () => {
-                document.getElementById('loading-overlay').style.display = 'flex';
-                document.getElementById('app-container').classList.add('hidden');
-                loadAppData().then(() => {
-                    if(appState.historicalData) setupHistoricalFilters();
+            function setupAppEventListeners() {
+                document.getElementById('refresh-data-btn')?.addEventListener('click', () => {
+                    loadAppData();
                 });
+                
+                document.querySelectorAll('.eval-toggle-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        document.querySelectorAll('.eval-toggle-button').forEach(btn => {
+                            btn.classList.remove('bg-[#DA291C]', 'text-white');
+                            btn.classList.add('text-gray-600');
+                        });
+                        e.target.classList.add('bg-[#DA291C]', 'text-white');
+                        e.target.classList.remove('text-gray-600');
+                        appState.evalDays = e.target.id === 'eval-7-day' ? 7 : 30;
+                        renderEvaluator();
+                    });
+                });
+
+                document.getElementById('daily-record-form')?.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const form = e.target;
+                    const record = {
+                        date: firebase.firestore.Timestamp.fromDate(new Date(form['record-date'].value + 'T00:00:00')),
+                        sales: parseFloat(form['record-sales'].value),
+                        customers: parseInt(form['record-customers'].value),
+                        add_on_sales: parseFloat(form['record-addons'].value),
+                        weather: form['record-weather'].value
+                    };
+                    try {
+                        await db.collection("historical_data").add(record);
+                        showToast("Daily record saved successfully!");
+                        form.reset();
+                        loadAppData();
+                    } catch (error) {
+                        showToast("Error saving record.", "error");
+                        console.error("Error adding document: ", error);
+                    }
+                });
+
+                document.getElementById('activity-form')?.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const form = e.target;
+                    const activity = {
+                        activity_name: form['activity-name'].value,
+                        customer_name: form['customer-name'].value,
+                        remarks: form['activity-status'].value,
+                        date: firebase.firestore.Timestamp.fromDate(new Date(form['activity-date'].value + 'T00:00:00')),
+                        potential_sales: parseFloat(form['activity-sales'].value)
+                    };
+                    try {
+                        await db.collection("future_activities").add(activity);
+                        showToast("Activity saved successfully!");
+                        form.reset();
+                        loadAppData();
+                    } catch (error) {
+                        showToast("Error saving activity.", "error");
+                        console.error("Error adding document: ", error);
+                    }
+                });
+
+                document.getElementById('event-form')?.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const form = e.target;
+                    const eventData = {
+                        event_name: form['event-name'].value,
+                        date: firebase.firestore.Timestamp.fromDate(new Date(form['event-date'].value + 'T00:00:00')),
+                    };
+                    try {
+                        await db.collection("future_events").add(eventData);
+                        showToast("Event saved successfully!");
+                        form.reset();
+                        loadAppData();
+                    } catch (error) {
+                        showToast("Error saving event.", "error");
+                        console.error("Error adding document: ", error);
+                    }
+                });
+
+                document.getElementById('content-area')?.addEventListener('click', async (e) => {
+                    const id = e.target.dataset.id;
+                    if (!id) return;
+
+                    // Activity Card Actions
+                    if (e.target.classList.contains('delete-activity-btn')) {
+                        if (confirm('Are you sure you want to delete this activity?')) {
+                            try {
+                                await db.collection('future_activities').doc(id).delete();
+                                showToast('Activity deleted.');
+                                loadAppData();
+                            } catch (error) { showToast('Error deleting activity.', 'error'); }
+                        }
+                    } else if (e.target.classList.contains('edit-activity-btn')) {
+                        document.getElementById(`view-${id}`).classList.add('hidden');
+                        document.getElementById(`edit-form-${id}`).classList.remove('hidden');
+                    } else if (e.target.classList.contains('cancel-edit-btn')) {
+                        document.getElementById(`view-${id}`).classList.remove('hidden');
+                        document.getElementById(`edit-form-${id}`).classList.add('hidden');
+                    } else if (e.target.classList.contains('update-activity-btn')) {
+                        e.preventDefault();
+                        const form = document.getElementById(`edit-form-${id}`);
+                        const updatedData = {
+                            activity_name: form.children[0].value,
+                            customer_name: form.children[1].value,
+                            date: firebase.firestore.Timestamp.fromDate(new Date(form.children[2].value + 'T00:00:00')),
+                            potential_sales: parseFloat(form.children[3].value),
+                            remarks: form.children[4].value,
+                            activity_type: form.children[5].value,
+                        };
+                        try {
+                            await db.collection('future_activities').doc(id).update(updatedData);
+                            showToast('Activity updated.');
+                            loadAppData();
+                        } catch (error) { showToast('Error updating activity.', 'error'); }
+                    }
+
+                    // Historical Card Actions
+                    if (e.target.classList.contains('delete-historical-btn')) {
+                        if (confirm('Are you sure you want to delete this historical record?')) {
+                            try {
+                                await db.collection('historical_data').doc(id).delete();
+                                showToast('Record deleted.');
+                                loadAppData();
+                            } catch (error) { showToast('Error deleting record.', 'error'); }
+                        }
+                    } else if (e.target.classList.contains('edit-historical-btn')) {
+                        document.getElementById(`view-hist-${id}`).classList.add('hidden');
+                        document.getElementById(`edit-form-hist-${id}`).classList.remove('hidden');
+                    } else if (e.target.classList.contains('cancel-edit-hist-btn')) {
+                        document.getElementById(`view-hist-${id}`).classList.remove('hidden');
+                        document.getElementById(`edit-form-hist-${id}`).classList.add('hidden');
+                    } else if (e.target.classList.contains('update-historical-btn')) {
+                        e.preventDefault();
+                        const form = document.getElementById(`edit-form-hist-${id}`);
+                        const inputs = form.querySelector('.grid').children;
+                        const updatedData = {
+                            sales: parseFloat(inputs[0].value),
+                            customers: parseInt(inputs[1].value),
+                            add_on_sales: parseFloat(inputs[2].value),
+                            weather: inputs[3].value,
+                        };
+                        try {
+                            await db.collection('historical_data').doc(id).update(updatedData);
+                            showToast('Record updated.');
+                            loadAppData();
+                        } catch (error) { showToast('Error updating record.', 'error'); }
+                    }
+
+                    // User Admin Actions
+                    if (e.target.classList.contains('delete-user-btn')) {
+                        if (confirm('Are you sure you want to delete this user?')) {
+                            try {
+                                await db.collection('users').doc(id).delete();
+                                showToast('User deleted.');
+                                loadAppData();
+                            } catch (error) { showToast('Error deleting user.', 'error'); }
+                        }
+                    }
+                });
+
+                document.getElementById('content-area')?.addEventListener('change', async (e) => {
+                    if (e.target.classList.contains('user-access-level-select')) {
+                        const id = e.target.dataset.id;
+                        const newLevel = parseInt(e.target.value);
+                        try {
+                            await db.collection('users').doc(id).update({ access_level: newLevel });
+                            showToast('User access level updated.');
+                        } catch (error) {
+                            showToast('Error updating access level.', 'error');
+                        }
+                    }
+                });
+            }
+            
+            // --- AUTHENTICATION FLOW ---
+            const loginForm = document.getElementById('login-form');
+            const loginScreen = document.getElementById('login-screen');
+            const appContainer = document.getElementById('app-container');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const loginError = document.getElementById('login-error');
+            const logoutBtn = document.getElementById('logout-btn');
+
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = loginForm.email.value;
+                const password = loginForm.password.value;
+                loginError.innerHTML = '';
+                
+                auth.signInWithEmailAndPassword(email, password)
+                    .catch(error => {
+                        console.error("Login Error:", error);
+                        if (error.code === 'auth/operation-not-allowed') {
+                             loginError.innerHTML = `
+                                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative text-left" role="alert">
+                                    <strong class="font-bold">Configuration Error!</strong>
+                                    <span class="block sm:inline">Email/Password sign-in is disabled.</span>
+                                    <p class="text-xs mt-2"><strong>Action Required:</strong> Go to your Firebase Console -> Authentication -> Sign-in method, and enable the Email/Password provider.</p>
+                                </div>
+                            `;
+                        } else {
+                            loginError.textContent = "Invalid username or password.";
+                        }
+                    });
             });
             
-            document.querySelectorAll('.eval-toggle-button').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    document.querySelectorAll('.eval-toggle-button').forEach(btn => {
-                        btn.classList.remove('bg-[#DA291C]', 'text-white');
-                        btn.classList.add('text-gray-600');
-                    });
-                    e.target.classList.add('bg-[#DA291C]', 'text-white');
-                    e.target.classList.remove('text-gray-600');
-                    appState.evalDays = e.target.id === 'eval-7-day' ? 7 : 30;
-                    renderEvaluator();
-                });
+            logoutBtn.addEventListener('click', () => {
+                auth.signOut();
             });
 
-            document.getElementById('daily-record-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const form = e.target;
-                const record = {
-                    date: firebase.firestore.Timestamp.fromDate(new Date(form['record-date'].value + 'T00:00:00')),
-                    sales: parseFloat(form['record-sales'].value),
-                    customers: parseInt(form['record-customers'].value),
-                    add_on_sales: parseFloat(form['record-addons'].value),
-                    weather: form['record-weather'].value
-                };
-                try {
-                    await db.collection("historical_data").add(record);
-                    showToast("Daily record saved successfully!");
-                    form.reset();
-                    loadAppData();
-                } catch (error) {
-                    showToast("Error saving record.", "error");
-                    console.error("Error adding document: ", error);
+            auth.onAuthStateChanged(async user => {
+                if (user) {
+                    // User is signed in.
+                    loginScreen.style.display = 'none';
+                    appContainer.style.display = 'flex';
+                    loadingOverlay.style.display = 'flex';
+
+                    // Fetch user's access level
+                    const userDoc = await db.collection('users').where('username', '==', user.email).get();
+                    if (!userDoc.empty) {
+                        appState.accessLevel = userDoc.docs[0].data().access_level;
+                    }
+                    
+                    document.getElementById('user-greeting').textContent = `Welcome, ${user.email.split('@')[0]}`;
+
+                    if (appState.accessLevel === 1) {
+                        document.querySelector('button[data-view="admin"]').classList.remove('hidden');
+                        document.querySelector('#mobile-nav button[data-view="admin"]').classList.remove('hidden');
+                    }
+
+                    await loadAppData();
+                    setupAppEventListeners();
+                    if(appState.historicalData) setupHistoricalFilters();
+
+                } else {
+                    // User is signed out.
+                    loginScreen.style.display = 'flex';
+                    appContainer.style.display = 'none';
+                    loadingOverlay.style.display = 'none';
                 }
             });
-
-            document.getElementById('activity-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const form = e.target;
-                const activity = {
-                    activity_name: form['activity-name'].value,
-                    date: firebase.firestore.Timestamp.fromDate(new Date(form['activity-date'].value + 'T00:00:00')),
-                    potential_sales: parseFloat(form['activity-sales'].value),
-                    remarks: "Tentative"
-                };
-                 try {
-                    await db.collection("future_activities").add(activity);
-                    showToast("Activity saved successfully!");
-                    form.reset();
-                    loadAppData();
-                } catch (error) {
-                    showToast("Error saving activity.", "error");
-                    console.error("Error adding document: ", error);
-                }
-            });
-
-            document.getElementById('content-area').addEventListener('click', async (e) => {
-                const id = e.target.dataset.id;
-                if (!id) return;
-
-                // Activity Card Actions
-                if (e.target.classList.contains('delete-activity-btn')) {
-                    if (confirm('Are you sure you want to delete this activity?')) {
-                        try {
-                            await db.collection('future_activities').doc(id).delete();
-                            showToast('Activity deleted.');
-                            loadAppData();
-                        } catch (error) { showToast('Error deleting activity.', 'error'); }
-                    }
-                } else if (e.target.classList.contains('edit-activity-btn')) {
-                    document.getElementById(`view-${id}`).classList.add('hidden');
-                    document.getElementById(`edit-form-${id}`).classList.remove('hidden');
-                } else if (e.target.classList.contains('cancel-edit-btn')) {
-                     document.getElementById(`view-${id}`).classList.remove('hidden');
-                    document.getElementById(`edit-form-${id}`).classList.add('hidden');
-                } else if (e.target.classList.contains('update-activity-btn')) {
-                    e.preventDefault();
-                    const form = document.getElementById(`edit-form-${id}`);
-                    const updatedData = {
-                        activity_name: form.children[0].value,
-                        date: firebase.firestore.Timestamp.fromDate(new Date(form.children[1].value + 'T00:00:00')),
-                        potential_sales: parseFloat(form.children[2].value),
-                        remarks: form.children[3].value,
-                    };
-                    try {
-                        await db.collection('future_activities').doc(id).update(updatedData);
-                        showToast('Activity updated.');
-                        loadAppData();
-                    } catch (error) { showToast('Error updating activity.', 'error'); }
-                }
-
-                // Historical Card Actions
-                if (e.target.classList.contains('delete-historical-btn')) {
-                    if (confirm('Are you sure you want to delete this historical record?')) {
-                        try {
-                            await db.collection('historical_data').doc(id).delete();
-                            showToast('Record deleted.');
-                            loadAppData();
-                        } catch (error) { showToast('Error deleting record.', 'error'); }
-                    }
-                } else if (e.target.classList.contains('edit-historical-btn')) {
-                    document.getElementById(`view-hist-${id}`).classList.add('hidden');
-                    document.getElementById(`edit-form-hist-${id}`).classList.remove('hidden');
-                } else if (e.target.classList.contains('cancel-edit-hist-btn')) {
-                    document.getElementById(`view-hist-${id}`).classList.remove('hidden');
-                    document.getElementById(`edit-form-hist-${id}`).classList.add('hidden');
-                } else if (e.target.classList.contains('update-historical-btn')) {
-                     e.preventDefault();
-                    const form = document.getElementById(`edit-form-hist-${id}`);
-                    const inputs = form.querySelector('.grid').children;
-                    const updatedData = {
-                        sales: parseFloat(inputs[0].value),
-                        customers: parseInt(inputs[1].value),
-                        add_on_sales: parseFloat(inputs[2].value),
-                        weather: inputs[3].value,
-                    };
-                    try {
-                        await db.collection('historical_data').doc(id).update(updatedData);
-                        showToast('Record updated.');
-                        loadAppData();
-                    } catch (error) { showToast('Error updating record.', 'error'); }
-                }
-
-                // User Admin Actions
-                if (e.target.classList.contains('delete-user-btn')) {
-                    if (confirm('Are you sure you want to delete this user?')) {
-                        try {
-                            await db.collection('users').doc(id).delete();
-                            showToast('User deleted.');
-                            loadAppData();
-                        } catch (error) { showToast('Error deleting user.', 'error'); }
-                    }
-                }
-            });
-
-            document.getElementById('content-area').addEventListener('change', async (e) => {
-                if (e.target.classList.contains('user-access-level-select')) {
-                    const id = e.target.dataset.id;
-                    const newLevel = parseInt(e.target.value);
-                    try {
-                        await db.collection('users').doc(id).update({ access_level: newLevel });
-                        showToast('User access level updated.');
-                    } catch (error) {
-                        showToast('Error updating access level.', 'error');
-                    }
-                }
-            });
-
-            // --- INITIAL APP LOAD ---
-            auth.signInAnonymously()
-                .then(() => {
-                    console.log("Signed in anonymously.");
-                    document.getElementById('loading-text').textContent = 'Loading Forecast Data...';
-                    loadAppData().then(() => {
-                        if(appState.historicalData) setupHistoricalFilters();
-                    });
-                })
-                .catch((error) => {
-                    console.error("Anonymous sign-in failed:", error);
-                    let userMessage;
-                    if (error.code === 'auth/operation-not-allowed' || (error.message && error.message.includes('CONFIGURATION_NOT_FOUND'))) {
-                        userMessage = `
-                            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
-                                <p class="font-bold text-lg">Configuration Error</p>
-                                <p>Anonymous sign-in is not enabled for this project.</p>
-                                <p class="mt-4 text-sm">
-                                    <strong>Action Required:</strong> Please go to your Firebase Console, navigate to the "Authentication" section, click on the "Sign-in method" tab, and enable the "Anonymous" provider.
-                                </p>
-                            </div>
-                        `;
-                    } else {
-                         userMessage = `
-                            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
-                                <p class="font-bold text-lg">Authentication Error</p>
-                                <p>${error.message}</p>
-                                <p class="mt-4 text-sm">Could not connect to the database. Please check your Firebase settings and security rules.</p>
-                            </div>
-                        `;
-                    }
-                    document.getElementById('loading-overlay').innerHTML = `<div class="p-8">${userMessage}</div>`;
-                });
         });
     </script>
 
