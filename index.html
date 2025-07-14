@@ -163,6 +163,10 @@
 
         <!-- Main Content Area -->
         <main id="content-area" class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
+            <div id="provisional-forecast-banner" class="hidden bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
+                <p class="font-bold">Provisional Forecast</p>
+                <p>Displaying a basic forecast generated from historical data. For the advanced prediction, please run the backend Python engine.</p>
+            </div>
             
             <!-- Dashboard Section -->
             <section id="dashboard-section" class="view">
@@ -463,20 +467,22 @@
                         db.collection("users").get()
                     ]);
 
-                    if (logSnapshot.empty) {
-                        throw new Error("No forecast data found in 'forecast_log'. Please run the Python forecasting script.");
-                    }
-                    
-                    const forecastDocs = logSnapshot.docs.map(doc => doc.data()).reverse();
-                    appState.forecastData = {
-                        dates: forecastDocs.map(d => d.forecast_for_date.toDate()),
-                        sales: forecastDocs.map(d => d.predicted_sales),
-                        customers: forecastDocs.map(d => d.predicted_customers),
-                    };
-
                     appState.historicalData = historicalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     appState.activitiesData = activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     appState.usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    if (logSnapshot.empty) {
+                        document.getElementById('provisional-forecast-banner').classList.remove('hidden');
+                        generateProvisionalForecast();
+                    } else {
+                        document.getElementById('provisional-forecast-banner').classList.add('hidden');
+                        const forecastDocs = logSnapshot.docs.map(doc => doc.data()).reverse();
+                        appState.forecastData = {
+                            dates: forecastDocs.map(d => d.forecast_for_date.toDate()),
+                            sales: forecastDocs.map(d => d.predicted_sales),
+                            customers: forecastDocs.map(d => d.predicted_customers),
+                        };
+                    }
                     
                     const recentHistory = appState.historicalData.slice(0, 30).map(h => h.customers).reverse();
                     const trendMovingAverage = recentHistory.length > 0 ? recentHistory.slice(-7).reduce((a, b) => a + b, 0) / 7 : 250;
@@ -543,6 +549,29 @@ service cloud.firestore {
                     document.getElementById('loading-overlay').innerHTML = `<div class="p-8">${userMessage}</div>`;
                     console.error("Firebase Error:", error);
                 }
+            }
+            
+            function generateProvisionalForecast() {
+                if (!appState.historicalData || appState.historicalData.length < 7) {
+                    showToast("Not enough historical data for a provisional forecast.", "error");
+                    return;
+                }
+                const last7DaysCustomers = appState.historicalData.slice(0, 7).map(d => d.customers);
+                const avgCustomers = last7DaysCustomers.reduce((a, b) => a + b, 0) / 7;
+                const last7DaysATV = appState.historicalData.slice(0, 7).map(d => (d.sales / d.customers));
+                const avgATV = last7DaysATV.reduce((a,b) => a+b, 0) / 7;
+
+                const dates = Array.from({length: 15}, (_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + i + 1);
+                    return d;
+                });
+
+                appState.forecastData = {
+                    dates: dates,
+                    customers: Array(15).fill(avgCustomers),
+                    sales: Array(15).fill(avgCustomers * avgATV)
+                };
             }
 
             // --- NAVIGATION LOGIC ---
@@ -1039,8 +1068,7 @@ service cloud.firestore {
                             customer_name: form.children[1].value,
                             date: firebase.firestore.Timestamp.fromDate(new Date(form.children[2].value + 'T00:00:00')),
                             potential_sales: parseFloat(form.children[3].value),
-                            remarks: form.children[4].value,
-                            activity_type: form.children[5].value,
+                            remarks: form.children[4].value
                         };
                         try {
                             await db.collection('future_activities').doc(id).update(updatedData);
