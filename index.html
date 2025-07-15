@@ -456,10 +456,10 @@
 
             // --- DATA FETCHING & PROCESSING ---
             async function loadAppData() {
+                document.getElementById('loading-overlay').style.display = 'flex';
+                document.getElementById('loading-text').textContent = 'Loading All Application Data...';
+                
                 try {
-                    document.getElementById('loading-overlay').style.display = 'flex';
-                    document.getElementById('loading-text').textContent = 'Loading All Application Data...';
-                    
                     const [logSnapshot, historicalSnapshot, activitiesSnapshot, usersSnapshot] = await Promise.all([
                         db.collection("forecast_log").orderBy("generated_on", "desc").limit(15).get(),
                         db.collection("historical_data").orderBy("date", "desc").get(),
@@ -514,8 +514,6 @@
                         }
                     });
                     appState.evaluationData = mergedEvalData.sort((a,b) => a.date - b.date);
-
-                    document.getElementById('loading-overlay').style.display = 'none';
                     
                     updateView();
 
@@ -548,25 +546,27 @@ service cloud.firestore {
                     }
                     document.getElementById('loading-overlay').innerHTML = `<div class="p-8">${userMessage}</div>`;
                     console.error("Firebase Error:", error);
+                } finally {
+                    document.getElementById('loading-overlay').style.display = 'none';
                 }
             }
             
             function generateProvisionalForecast() {
+                const dates = Array.from({length: 15}, (_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + i + 1);
+                    return d;
+                });
+
                 if (!appState.historicalData || appState.historicalData.length < 7) {
                     showToast("Not enough historical data for a provisional forecast.", "error");
-                    appState.forecastData = { dates: [], sales: [], customers: [] };
+                    appState.forecastData = { dates: dates, sales: [], customers: [] };
                     return;
                 }
                 const last7DaysCustomers = appState.historicalData.slice(0, 7).map(d => d.customers);
                 const avgCustomers = last7DaysCustomers.reduce((a, b) => a + b, 0) / 7;
                 const last7DaysATV = appState.historicalData.slice(0, 7).map(d => (d.sales / d.customers));
                 const avgATV = last7DaysATV.reduce((a,b) => a+b, 0) / 7;
-
-                const dates = Array.from({length: 15}, (_, i) => {
-                    const d = new Date();
-                    d.setDate(d.getDate() + i + 1);
-                    return d;
-                });
 
                 appState.forecastData = {
                     dates: dates,
