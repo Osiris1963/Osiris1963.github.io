@@ -554,6 +554,7 @@ service cloud.firestore {
             function generateProvisionalForecast() {
                 if (!appState.historicalData || appState.historicalData.length < 7) {
                     showToast("Not enough historical data for a provisional forecast.", "error");
+                    appState.forecastData = { dates: [], sales: [], customers: [] };
                     return;
                 }
                 const last7DaysCustomers = appState.historicalData.slice(0, 7).map(d => d.customers);
