@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>McDonald's San Carlos 688</title>
-    <!-- Chosen Palette: McDonald's Professional (Warm Gray, Red, Yellow, Dark Text) -->
-    <!-- Application Structure Plan: The SPA uses a fixed top navigation bar to switch between content sections, mimicking the logical flow of the original app's tabs. This design was chosen because it provides clear, persistent navigation, allowing users to easily move between the main forecast 'Dashboard', component 'Insights', and performance 'Evaluator' without losing context. All content is dynamically rendered into a single main content area, making it a true single-page application focused on usability and a seamless user flow. -->
-    <!-- Visualization & Content Choices: Data from the report is presented using Chart.js for all visualizations to maintain a consistent look and feel. Goal: Show Change -> Viz: A dual-axis line chart is used on the Dashboard to show sales/customer trends. Interaction: Hover tooltips provide specific data points. Goal: Organize/Explain -> Viz: A waterfall chart on the Insights page breaks down forecast components. Interaction: A dropdown filters the view by date. Goal: Compare -> Viz: Paired line charts on the Evaluator page compare actuals vs. forecasts. Interaction: Toggles filter the time range. Data management is handled via styled HTML forms and cards, providing a clear and standard interface. This approach avoids proscribed libraries and focuses on universally understood interactions. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -15,7 +11,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -122,7 +117,6 @@
 
 
     <div id="app-container" class="min-h-screen flex-col hidden">
-        <!-- Header -->
         <header class="bg-white shadow-md sticky top-0 z-10">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-20">
@@ -149,7 +143,6 @@
             </div>
         </header>
         
-        <!-- Mobile Navigation -->
         <nav id="mobile-nav" class="md:hidden bg-white shadow-md p-2 grid grid-cols-3 gap-1 sticky top-0 z-10">
             <button data-view="dashboard" class="nav-button active flex-1 text-sm py-2 rounded-lg font-semibold">Dashboard</button>
             <button data-view="insights" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">Insights</button>
@@ -161,14 +154,12 @@
         </nav>
 
 
-        <!-- Main Content Area -->
         <main id="content-area" class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
             <div id="provisional-forecast-banner" class="hidden bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
                 <p class="font-bold">Provisional Forecast</p>
                 <p>Displaying a basic forecast generated from historical data. For the advanced prediction, please run the backend Python engine.</p>
             </div>
             
-            <!-- Dashboard Section -->
             <section id="dashboard-section" class="view">
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Forecast Dashboard</h2>
@@ -196,7 +187,6 @@
                 </div>
             </section>
 
-            <!-- Insights Section -->
             <section id="insights-section" class="view hidden">
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Forecast Insights</h2>
@@ -222,7 +212,6 @@
                 </div>
             </section>
 
-            <!-- Evaluator Section -->
             <section id="evaluator-section" class="view hidden">
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Forecast Evaluator</h2>
@@ -260,8 +249,7 @@
                 </div>
             </section>
             
-             <!-- Data Management Section -->
-            <section id="datamgmt-section" class="view hidden">
+             <section id="datamgmt-section" class="view hidden">
                  <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Add New Data</h2>
                     <p class="text-gray-600">Add new daily records and future activities to improve forecast accuracy.</p>
@@ -317,7 +305,6 @@
                 </div>
             </section>
             
-            <!-- Future Activities Section -->
             <section id="activities-section" class="view hidden">
                  <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Future Activities</h2>
@@ -359,16 +346,13 @@
                     </div>
                     <div class="lg:col-span-2">
                         <div id="activity-tabs-container" class="mb-4 border-b border-gray-300">
-                            <!-- Month tabs will be inserted here -->
-                        </div>
+                            </div>
                         <div id="activity-content-container">
-                            <!-- Activity content for the selected month will be inserted here -->
-                        </div>
+                            </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Historical Data Section -->
             <section id="historical-section" class="view hidden">
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Historical Data</h2>
@@ -385,19 +369,16 @@
                     </div>
                 </div>
                 <div id="historical-list" class="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
-                    <!-- Historical data cards will be inserted here by JavaScript -->
-                </div>
+                    </div>
             </section>
 
-            <!-- Admin Section -->
             <section id="admin-section" class="view hidden">
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">User Management</h2>
                     <p class="text-gray-600">View and manage user access levels. New users should be created securely in the Firebase Console.</p>
                 </div>
                 <div id="user-list" class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 space-y-4">
-                    <!-- User list will be inserted here -->
-                </div>
+                    </div>
             </section>
 
         </main>
@@ -461,7 +442,7 @@
                 
                 try {
                     const [logSnapshot, historicalSnapshot, activitiesSnapshot, usersSnapshot] = await Promise.all([
-                        db.collection("forecast_log").orderBy("generated_on", "desc").limit(15).get(),
+                        db.collection("forecast_log").orderBy("generated_on", "desc").limit(60).get(),
                         db.collection("historical_data").orderBy("date", "desc").get(),
                         db.collection("future_activities").orderBy("date", "asc").get(),
                         db.collection("users").get()
