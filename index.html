@@ -456,12 +456,11 @@
 
             // --- DATA FETCHING & PROCESSING ---
             async function loadAppData() {
-                document.getElementById('loading-overlay').style.display = 'flex';
                 document.getElementById('loading-text').textContent = 'Loading All Application Data...';
                 
                 try {
                     const [logSnapshot, historicalSnapshot, activitiesSnapshot, usersSnapshot] = await Promise.all([
-                        db.collection("forecast_log").orderBy("generated_on", "desc").limit(15).get(),
+                        db.collection("forecast_log").orderBy("generated_on", "desc").limit(60).get(),
                         db.collection("historical_data").orderBy("date", "desc").get(),
                         db.collection("future_activities").orderBy("date", "asc").get(),
                         db.collection("users").get()
@@ -478,9 +477,9 @@
                         document.getElementById('provisional-forecast-banner').classList.add('hidden');
                         const forecastDocs = logSnapshot.docs.map(doc => doc.data()).reverse();
                         appState.forecastData = {
-                            dates: forecastDocs.map(d => d.forecast_for_date.toDate()),
-                            sales: forecastDocs.map(d => d.predicted_sales),
-                            customers: forecastDocs.map(d => d.predicted_customers),
+                            dates: forecastDocs.slice(-15).map(d => d.forecast_for_date.toDate()),
+                            sales: forecastDocs.slice(-15).map(d => d.predicted_sales),
+                            customers: forecastDocs.slice(-15).map(d => d.predicted_customers),
                         };
                     }
                     
@@ -501,8 +500,13 @@
                     const evalLogs = logSnapshot.docs.map(doc => doc.data());
                     const mergedEvalData = [];
                     evalLogs.forEach(log => {
-                        const logDate = log.forecast_for_date.toDate().toISOString().split('T')[0];
-                        const actual = appState.historicalData.find(h => h.date.toDate().toISOString().split('T')[0] === logDate);
+                        const logDate = log.forecast_for_date.toDate();
+                        const actual = appState.historicalData.find(h => {
+                            const histDate = h.date.toDate();
+                            return histDate.getFullYear() === logDate.getFullYear() &&
+                                   histDate.getMonth() === logDate.getMonth() &&
+                                   histDate.getDate() === logDate.getDate();
+                        });
                         if (actual) {
                             mergedEvalData.push({
                                 date: log.forecast_for_date.toDate(),
@@ -1178,22 +1182,30 @@ service cloud.firestore {
                     appContainer.style.display = 'flex';
                     loadingOverlay.style.display = 'flex';
 
-                    // Fetch user's access level
-                    const userDoc = await db.collection('users').where('username', '==', user.email).get();
-                    if (!userDoc.empty) {
-                        appState.accessLevel = userDoc.docs[0].data().access_level;
-                    }
-                    
-                    document.getElementById('user-greeting').textContent = `Welcome, ${user.email.split('@')[0]}`;
+                    try {
+                        // Fetch user's access level
+                        const userDoc = await db.collection('users').where('username', '==', user.email).get();
+                        if (!userDoc.empty) {
+                            appState.accessLevel = userDoc.docs[0].data().access_level;
+                        }
+                        
+                        document.getElementById('user-greeting').textContent = `Welcome, ${user.email.split('@')[0]}`;
 
-                    if (appState.accessLevel === 1) {
-                        document.querySelector('button[data-view="admin"]').classList.remove('hidden');
-                        document.querySelector('#mobile-nav button[data-view="admin"]').classList.remove('hidden');
-                    }
+                        if (appState.accessLevel === 1) {
+                            document.querySelector('button[data-view="admin"]').classList.remove('hidden');
+                            document.querySelector('#mobile-nav button[data-view="admin"]').classList.remove('hidden');
+                        }
 
-                    await loadAppData();
-                    setupAppEventListeners();
-                    if(appState.historicalData) setupHistoricalFilters();
+                        await loadAppData();
+                        setupAppEventListeners();
+                        if(appState.historicalData) setupHistoricalFilters();
+
+                    } catch(e) {
+                         console.error("Error during post-login setup:", e);
+                         showToast("An error occurred after login. Please refresh.", "error");
+                    } finally {
+                        loadingOverlay.style.display = 'none';
+                    }
 
                 } else {
                     // User is signed out.
