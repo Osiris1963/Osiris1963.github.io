@@ -442,7 +442,7 @@
                 
                 try {
                     const [logSnapshot, historicalSnapshot, activitiesSnapshot, usersSnapshot] = await Promise.all([
-                        db.collection("forecast_log").orderBy("generated_on", "desc").limit(30).get(), // Fetch more logs to be safe
+                        db.collection("forecast_log").where("generated_on", ">=", sixtyDaysAgo).get(), // Fetch more logs to be safe
                         db.collection("historical_data").orderBy("date", "desc").get(),
                         db.collection("future_activities").orderBy("date", "asc").get(),
                         db.collection("users").get()
