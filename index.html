@@ -441,7 +441,8 @@
                 document.getElementById('loading-text').textContent = 'Loading All Application Data...';
                 
                 const sixtyDaysAgo = new Date();
-sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60); try {
+sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60); 
+                try {
                     const [logSnapshot, historicalSnapshot, activitiesSnapshot, usersSnapshot] = await Promise.all([
                         db.collection("forecast_log").where("generated_on", ">=", sixtyDaysAgo).get(), // Fetch more logs to be safe
                         db.collection("historical_data").orderBy("date", "desc").get(),
