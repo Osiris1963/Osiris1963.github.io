@@ -1,0 +1,6 @@
+firebase-admin
+pandas
+prophet
+xgboost
+scikit-learn
+numpy
