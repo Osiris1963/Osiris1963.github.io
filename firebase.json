@@ -3,7 +3,7 @@
     {
       "source": "backend",
       "codebase": "backend",
-      "runtime": "python3.11"
+      "runtime": "python311"
     }
   ]
 }
