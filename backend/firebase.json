@@ -1,9 +1,0 @@
-{
-  "functions": [
-    {
-      "source": "backend",
-      "codebase": "backend",
-      "runtime": "python3.11"
-    }
-  ]
-}
