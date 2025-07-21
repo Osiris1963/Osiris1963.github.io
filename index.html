@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>McDonald's San Carlos 688</title>
+    <!-- Chosen Palette: McDonald's Professional (Warm Gray, Red, Yellow, Dark Text) -->
+    <!-- Application Structure Plan: The SPA uses a fixed top navigation bar to switch between content sections, mimicking the logical flow of the original app's tabs. This design was chosen because it provides clear, persistent navigation, allowing users to easily move between the main forecast 'Dashboard', component 'Insights', and performance 'Evaluator' without losing context. All content is dynamically rendered into a single main content area, making it a true single-page application focused on usability and a seamless user flow. -->
+    <!-- Visualization & Content Choices: Data from the report is presented using Chart.js for all visualizations to maintain a consistent look and feel. Goal: Show Change -> Viz: A dual-axis line chart is used on the Dashboard to show sales/customer trends. Interaction: Hover tooltips provide specific data points. Goal: Organize/Explain -> Viz: A waterfall chart on the Insights page breaks down forecast components. Interaction: A dropdown filters the view by date. Goal: Compare -> Viz: Paired line charts on the Evaluator page compare actuals vs. forecasts. Interaction: Toggles filter the time range. Data management is handled via styled HTML forms and cards, providing a clear and standard interface. This approach avoids proscribed libraries and focuses on universally understood interactions. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -11,6 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -117,6 +122,7 @@
 
 
     <div id="app-container" class="min-h-screen flex-col hidden">
+        <!-- Header -->
         <header class="bg-white shadow-md sticky top-0 z-10">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-20">
@@ -143,6 +149,7 @@
             </div>
         </header>
         
+        <!-- Mobile Navigation -->
         <nav id="mobile-nav" class="md:hidden bg-white shadow-md p-2 grid grid-cols-3 gap-1 sticky top-0 z-10">
             <button data-view="dashboard" class="nav-button active flex-1 text-sm py-2 rounded-lg font-semibold">Dashboard</button>
             <button data-view="insights" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">Insights</button>
@@ -154,12 +161,14 @@
         </nav>
 
 
+        <!-- Main Content Area -->
         <main id="content-area" class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
             <div id="provisional-forecast-banner" class="hidden bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
                 <p class="font-bold">Provisional Forecast</p>
                 <p>Displaying a basic forecast generated from historical data. For the advanced prediction, please run the backend Python engine.</p>
             </div>
             
+            <!-- Dashboard Section -->
             <section id="dashboard-section" class="view">
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Forecast Dashboard</h2>
@@ -187,6 +196,7 @@
                 </div>
             </section>
 
+            <!-- Insights Section -->
             <section id="insights-section" class="view hidden">
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Forecast Insights</h2>
@@ -212,6 +222,7 @@
                 </div>
             </section>
 
+            <!-- Evaluator Section -->
             <section id="evaluator-section" class="view hidden">
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Forecast Evaluator</h2>
@@ -249,7 +260,8 @@
                 </div>
             </section>
             
-             <section id="datamgmt-section" class="view hidden">
+             <!-- Data Management Section -->
+            <section id="datamgmt-section" class="view hidden">
                  <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Add New Data</h2>
                     <p class="text-gray-600">Add new daily records and future activities to improve forecast accuracy.</p>
@@ -305,6 +317,7 @@
                 </div>
             </section>
             
+            <!-- Future Activities Section -->
             <section id="activities-section" class="view hidden">
                  <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Future Activities</h2>
@@ -346,13 +359,16 @@
                     </div>
                     <div class="lg:col-span-2">
                         <div id="activity-tabs-container" class="mb-4 border-b border-gray-300">
-                            </div>
+                            <!-- Month tabs will be inserted here -->
+                        </div>
                         <div id="activity-content-container">
-                            </div>
+                            <!-- Activity content for the selected month will be inserted here -->
+                        </div>
                     </div>
                 </div>
             </section>
 
+            <!-- Historical Data Section -->
             <section id="historical-section" class="view hidden">
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Historical Data</h2>
@@ -369,16 +385,19 @@
                     </div>
                 </div>
                 <div id="historical-list" class="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
-                    </div>
+                    <!-- Historical data cards will be inserted here by JavaScript -->
+                </div>
             </section>
 
+            <!-- Admin Section -->
             <section id="admin-section" class="view hidden">
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">User Management</h2>
                     <p class="text-gray-600">View and manage user access levels. New users should be created securely in the Firebase Console.</p>
                 </div>
                 <div id="user-list" class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 space-y-4">
-                    </div>
+                    <!-- User list will be inserted here -->
+                </div>
             </section>
 
         </main>
@@ -435,43 +454,66 @@
                 }, 3000);
             }
 
+            // --- DATE HELPER FUNCTION ---
+            /**
+             * Converts a Date object to a 'YYYY-MM-DD' string based on the local date.
+             * This is timezone-safe for matching dates.
+             * @param {Date} date The date to convert.
+             * @returns {string} The formatted date string.
+             */
+            function getLocalDateString(date) {
+                const year = date.getFullYear();
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const day = date.getDate().toString().padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
             // --- DATA FETCHING & PROCESSING ---
             async function loadAppData() {
                 document.getElementById('loading-overlay').style.display = 'flex';
                 document.getElementById('loading-text').textContent = 'Loading All Application Data...';
                 
-                const sixtyDaysAgo = new Date();
-sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60); 
                 try {
-                    const [logSnapshot, historicalSnapshot, activitiesSnapshot, usersSnapshot] = await Promise.all([
-                        db.collection("forecast_log").where("generated_on", ">=", sixtyDaysAgo).get(), // Fetch more logs to be safe
+                    // --- FIX: Separate queries for Dashboard (future) and Evaluator (past) ---
+                    const thirtyFiveDaysAgo = new Date();
+                    thirtyFiveDaysAgo.setDate(thirtyFiveDaysAgo.getDate() - 35);
+
+                    const [
+                        dashboardLogSnapshot,
+                        allHistoricalSnapshot, // All historical data for the history tab
+                        activitiesSnapshot,
+                        usersSnapshot,
+                        evalLogSnapshot, // Forecast logs for the evaluator
+                        evalHistoricalSnapshot // Historical data for the evaluator
+                    ] = await Promise.all([
+                        // Query for Dashboard: latest 15 forecasts for the future
+                        db.collection("forecast_log").orderBy("generated_on", "desc").limit(15).get(),
+                        // Query for History Tab: all historical data
                         db.collection("historical_data").orderBy("date", "desc").get(),
+                        // Query for Activities
                         db.collection("future_activities").orderBy("date", "asc").get(),
-                        db.collection("users").get()
+                        // Query for Users
+                        db.collection("users").get(),
+                        // Query for Evaluator: forecast logs from the last 35 days
+                        db.collection("forecast_log").where("forecast_for_date", ">=", thirtyFiveDaysAgo).get(),
+                        // Query for Evaluator: historical data from the last 35 days
+                        // IMPORTANT: This query requires a composite index in Firestore. 
+                        // The browser console will provide a link to create it automatically.
+                        db.collection("historical_data").where("date", ">=", thirtyFiveDaysAgo).orderBy("date", "desc").get()
                     ]);
 
-                    appState.historicalData = historicalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    // Process data for general app use (History tab, etc.)
+                    appState.historicalData = allHistoricalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     appState.activitiesData = activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     appState.usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    if (logSnapshot.empty) {
+                    // --- Process Dashboard Data ---
+                    if (dashboardLogSnapshot.empty) {
                         document.getElementById('provisional-forecast-banner').classList.remove('hidden');
                         generateProvisionalForecast();
                     } else {
-                        const allForecastLogs = logSnapshot.docs.map(doc => doc.data());
-                        const uniqueForecastsForDashboard = new Map();
-                        allForecastLogs.forEach(log => {
-                            const logDateStr = log.forecast_for_date.toDate().toISOString().split('T')[0];
-                            if(!uniqueForecastsForDashboard.has(logDateStr)) {
-                                uniqueForecastsForDashboard.set(logDateStr, log);
-                            }
-                        });
-                        
-                        const forecastDocs = Array.from(uniqueForecastsForDashboard.values())
-                            .sort((a,b) => a.forecast_for_date.toDate() - b.forecast_for_date.toDate())
-                            .slice(-15);
-
                         document.getElementById('provisional-forecast-banner').classList.add('hidden');
+                        const forecastDocs = dashboardLogSnapshot.docs.map(doc => doc.data()).reverse();
                         appState.forecastData = {
                             dates: forecastDocs.map(d => d.forecast_for_date.toDate()),
                             sales: forecastDocs.map(d => d.predicted_sales),
@@ -479,10 +521,10 @@ sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
                         };
                     }
                     
-                    const recentHistory = appState.historicalData.slice(0, 30).map(h => h.customers).reverse();
-                    const trendMovingAverage = recentHistory.length > 0 ? recentHistory.slice(-7).reduce((a, b) => a + b, 0) / 7 : 250;
+                    const recentHistoryForInsight = appState.historicalData.slice(0, 30).map(h => h.customers).reverse();
+                    const trendMovingAverage = recentHistoryForInsight.length > 0 ? recentHistoryForInsight.slice(-7).reduce((a, b) => a + b, 0) / 7 : 250;
                     
-                    if(appState.forecastData && appState.forecastData.dates) {
+                    if(appState.forecastData && appState.forecastData.dates.length > 0) {
                         appState.insightsData = appState.forecastData.dates.map((date, i) => {
                             const forecastCustomers = appState.forecastData.customers[i];
                             const effect = forecastCustomers - trendMovingAverage;
@@ -495,35 +537,34 @@ sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
                         });
                     }
 
-                    // --- DEFINITIVE EVALUATION DATA MERGE LOGIC ---
 
-                    // 1. De-duplicate forecast logs to get the most recent one per day.
-                    const latestForecasts = new Map();
-                    logSnapshot.docs.forEach(doc => {
+                    // --- Process and Merge Data for Evaluator ---
+                    const latestForecastsForEval = new Map();
+                    evalLogSnapshot.docs.forEach(doc => {
                         const log = doc.data();
-                        const logDateStr = log.forecast_for_date.toDate().toISOString().split('T')[0];
-                        if (!latestForecasts.has(logDateStr)) {
-                            latestForecasts.set(logDateStr, log);
+                        const logDateStr = getLocalDateString(log.forecast_for_date.toDate());
+                        const existing = latestForecastsForEval.get(logDateStr);
+                        // Only keep the most recently generated forecast for any given day
+                        if (!existing || log.generated_on.toMillis() > existing.generated_on.toMillis()) {
+                            latestForecastsForEval.set(logDateStr, log);
                         }
                     });
 
-                    // 2. De-duplicate the app's historical data to ensure one record per day.
-                    const uniqueActuals = new Map();
-                    appState.historicalData.forEach(actual => {
-                        const actualDateStr = actual.date.toDate().toISOString().split('T')[0];
-                        if (!uniqueActuals.has(actualDateStr)) {
-                            uniqueActuals.set(actualDateStr, actual);
+                    const actualsForEval = new Map();
+                    evalHistoricalSnapshot.docs.forEach(doc => {
+                        const actual = doc.data();
+                        const actualDateStr = getLocalDateString(actual.date.toDate());
+                        if (!actualsForEval.has(actualDateStr)) {
+                            actualsForEval.set(actualDateStr, { id: doc.id, ...actual });
                         }
                     });
 
-                    // 3. Merge the two de-duplicated maps to create the final, clean evaluation data.
                     const mergedEvalData = [];
-                    uniqueActuals.forEach((actual, actualDateStr) => {
-                        if (latestForecasts.has(actualDateStr)) {
-                            const forecast = latestForecasts.get(actualDateStr);
+                    actualsForEval.forEach((actual, actualDateStr) => {
+                        if (latestForecastsForEval.has(actualDateStr)) {
+                            const forecast = latestForecastsForEval.get(actualDateStr);
                             mergedEvalData.push({
                                 date: actual.date.toDate(),
-                                // DEFENSIVE CODING: Force all values to be numbers to prevent type errors.
                                 actual_sales: Number(actual.sales),
                                 forecast_sales: Number(forecast.predicted_sales) + Number(actual.add_on_sales || 0),
                                 actual_customers: Number(actual.customers),
@@ -532,9 +573,9 @@ sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
                         }
                     });
                     
-                    // 4. Sort the final, clean data by date to ensure the chart lines are drawn correctly.
                     appState.evaluationData = mergedEvalData.sort((a,b) => a.date - b.date);
                     
+                    // --- Final UI Update ---
                     updateView();
 
                 } catch (error) {
@@ -561,13 +602,28 @@ service cloud.firestore {
 }</code></pre>
                             </div>
                         `;
+                    } else if (error.code === 'failed-precondition') {
+                         userMessage = `
+                            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
+                                <p class="font-bold text-lg">Firestore Index Required</p>
+                                <p>A database index is required for the Evaluator to work. This is a one-time setup.</p>
+                                <p class="mt-4 text-sm">
+                                    <strong>Action Required:</strong> Open the browser's developer console (usually by pressing F12). You will find an error message from Firebase containing a long URL.
+                                </p>
+                                <p class="mt-2 text-sm">
+                                   Copy that full URL, paste it into a new browser tab, and click the "Create Index" button on the page that loads. Then, reload this application.
+                                </p>
+                            </div>
+                        `;
                     } else {
                         userMessage = `<div class="text-center p-8"><h2 class="text-2xl font-bold text-red-600">Error Loading Data</h2><p class="text-gray-700 mt-2">${error.message}</p><p class="mt-4 text-sm text-gray-500">Please check the browser console for more details.</p></div>`;
                     }
                     document.getElementById('loading-overlay').innerHTML = `<div class="p-8">${userMessage}</div>`;
                     console.error("Firebase Error:", error);
                 } finally {
-                    document.getElementById('loading-overlay').style.display = 'none';
+                    if(!document.getElementById('loading-overlay').innerHTML.includes('Error')) {
+                       document.getElementById('loading-overlay').style.display = 'none';
+                    }
                 }
             }
             
@@ -670,7 +726,7 @@ service cloud.firestore {
                 
                 select.removeEventListener('change', handleInsightDateChange); 
                 select.addEventListener('change', handleInsightDateChange);
-                if (select.value) {
+                if (appState.insightsData.length > 0) {
                     updateWaterfallChart(select.value);
                 }
             }
@@ -704,7 +760,7 @@ service cloud.firestore {
                 
                 const summaryEl = document.getElementById('insight-summary');
                 summaryEl.innerHTML = `
-                    <h4 class="font-bold text-lg mb-2">Summary for ${new Date(dateString + 'T00:00:00').toLocaleDateString('en-US', {month: 'long', day: 'numeric'})}</h4>
+                    <h4 class="font-bold text-lg mb-2">Summary for ${new Date(dateString + 'T08:00:00').toLocaleDateString('en-US', {month: 'long', day: 'numeric'})}</h4>
                     <p class="mb-2">The forecast starts with a baseline trend of <strong>${data.trend.toFixed(0)}</strong> customers.</p>
                     <p class="mb-2">Seasonal and event effects are ${data.seasonal_effect >= 0 ? 'positive' : 'negative'}, adjusting by <strong>${data.seasonal_effect.toFixed(0)}</strong> customers.</p>
                     <hr class="my-3 border-gray-300">
@@ -713,28 +769,54 @@ service cloud.firestore {
             }
             
             function renderEvaluator() {
+                // Get elements and clear previous state
+                const salesAccuracyEl = document.getElementById('sales-accuracy');
+                const customerAccuracyEl = document.getElementById('customer-accuracy');
+                const salesChartCtx = document.getElementById('salesEvalChart')?.getContext('2d');
+                const custChartCtx = document.getElementById('customersEvalChart')?.getContext('2d');
+
+                if (charts.salesEval) charts.salesEval.destroy();
+                if (charts.custEval) charts.custEval.destroy();
+                salesAccuracyEl.textContent = 'N/A';
+                customerAccuracyEl.textContent = 'N/A';
+
+                // Check if there is any evaluation data at all
                 if (!appState.evaluationData || appState.evaluationData.length === 0) {
-                    showToast("No evaluation data available.", "error");
+                    showToast("No matching historical and forecast data found for evaluation.", "error");
                     return;
                 }
+
                 const days = appState.evalDays;
                 const dataSlice = appState.evaluationData.slice(-days);
                 
-                if (dataSlice.length < 1) return;
+                // Check if there is data for the selected time slice (e.g., last 7 days)
+                if (dataSlice.length === 0) {
+                    showToast(`No evaluation data available for the last ${days} days.`, "error");
+                    return;
+                }
+                
+                // --- MAPE Calculation with protection against division by zero ---
+                const salesMapeData = dataSlice.filter(d => d.actual_sales > 0);
+                const salesMape = salesMapeData.length > 0 
+                    ? (salesMapeData.reduce((sum, val) => sum + Math.abs((val.actual_sales - val.forecast_sales) / val.actual_sales), 0) / salesMapeData.length) * 100
+                    : 0;
 
-                const salesMape = dataSlice.reduce((sum, val) => sum + Math.abs((val.actual_sales - val.forecast_sales) / val.actual_sales), 0) / dataSlice.length * 100;
-                const custMape = dataSlice.reduce((sum, val) => sum + Math.abs((val.actual_customers - val.forecast_customers) / val.actual_customers), 0) / dataSlice.length * 100;
+                const custMapeData = dataSlice.filter(d => d.actual_customers > 0);
+                const custMape = custMapeData.length > 0
+                    ? (custMapeData.reduce((sum, val) => sum + Math.abs((val.actual_customers - val.forecast_customers) / val.actual_customers), 0) / custMapeData.length) * 100
+                    : 0;
 
-                document.getElementById('sales-accuracy').textContent = `${(100 - salesMape).toFixed(2)}%`;
-                document.getElementById('customer-accuracy').textContent = `${(100 - custMape).toFixed(2)}%`;
+                salesAccuracyEl.textContent = `${(100 - salesMape).toFixed(2)}%`;
+                customerAccuracyEl.textContent = `${(100 - custMape).toFixed(2)}%`;
 
-                const salesCtx = document.getElementById('salesEvalChart').getContext('2d');
-                if(charts.salesEval) charts.salesEval.destroy();
-                charts.salesEval = createEvalChart(salesCtx, dataSlice.map(d=>d.date), dataSlice.map(d=>d.actual_sales), dataSlice.map(d=>d.forecast_sales));
-
-                const custCtx = document.getElementById('customersEvalChart').getContext('2d');
-                if(charts.custEval) charts.custEval.destroy();
-                charts.custEval = createEvalChart(custCtx, dataSlice.map(d=>d.date), dataSlice.map(d=>d.actual_customers), dataSlice.map(d=>d.forecast_customers));
+                // Render charts if the context is available
+                if (salesChartCtx) {
+                    charts.salesEval = createEvalChart(salesChartCtx, dataSlice.map(d=>d.date), dataSlice.map(d=>d.actual_sales), dataSlice.map(d=>d.forecast_sales));
+                }
+                
+                if (custChartCtx) {
+                    charts.custEval = createEvalChart(custChartCtx, dataSlice.map(d=>d.date), dataSlice.map(d=>d.actual_customers), dataSlice.map(d=>d.forecast_customers));
+                }
             }
             
             function createEvalChart(ctx, dates, actuals, forecasts) {
@@ -1010,7 +1092,7 @@ service cloud.firestore {
                     e.preventDefault();
                     const form = e.target;
                     const record = {
-                        date: firebase.firestore.Timestamp.fromDate(new Date(form['record-date'].value + 'T00:00:00')),
+                        date: firebase.firestore.Timestamp.fromDate(new Date(form['record-date'].value + 'T08:00:00')),
                         sales: parseFloat(form['record-sales'].value),
                         customers: parseInt(form['record-customers'].value),
                         add_on_sales: parseFloat(form['record-addons'].value),
@@ -1034,7 +1116,7 @@ service cloud.firestore {
                         activity_name: form['activity-name'].value,
                         customer_name: form['customer-name'].value,
                         remarks: form['activity-status'].value,
-                        date: firebase.firestore.Timestamp.fromDate(new Date(form['activity-date'].value + 'T00:00:00')),
+                        date: firebase.firestore.Timestamp.fromDate(new Date(form['activity-date'].value + 'T08:00:00')),
                         potential_sales: parseFloat(form['activity-sales'].value)
                     };
                     try {
@@ -1053,7 +1135,7 @@ service cloud.firestore {
                     const form = e.target;
                     const eventData = {
                         event_name: form['event-name'].value,
-                        date: firebase.firestore.Timestamp.fromDate(new Date(form['event-date'].value + 'T00:00:00')),
+                        date: firebase.firestore.Timestamp.fromDate(new Date(form['event-date'].value + 'T08:00:00')),
                     };
                     try {
                         await db.collection("future_events").add(eventData);
@@ -1091,7 +1173,7 @@ service cloud.firestore {
                         const updatedData = {
                             activity_name: form.children[0].value,
                             customer_name: form.children[1].value,
-                            date: firebase.firestore.Timestamp.fromDate(new Date(form.children[2].value + 'T00:00:00')),
+                            date: firebase.firestore.Timestamp.fromDate(new Date(form.children[2].value + 'T08:00:00')),
                             potential_sales: parseFloat(form.children[3].value),
                             remarks: form.children[4].value,
                         };
