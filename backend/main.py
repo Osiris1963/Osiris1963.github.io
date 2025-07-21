@@ -90,7 +90,7 @@ def get_weather_forecast(days=15):
     }
 
 # --- Main Forecasting Logic ---
-def run_forecast():
+def run_daily_forecast(event=None, context=None):
     """
     Main function to run the entire forecasting process:
     1. Fetches data from Firestore.
