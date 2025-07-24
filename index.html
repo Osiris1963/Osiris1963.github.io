@@ -181,6 +181,7 @@
         }
         .leave-vl { background-color: #3b82f6; }
         .leave-hl { background-color: #10b981; }
+        .leave-sl { background-color: #f59e0b; }
         .view-only {
             pointer-events: none;
             opacity: 0.7;
@@ -366,6 +367,7 @@
                     <div id="manager-schedule-tabs" class="border-b border-gray-200 mb-6">
                         <nav class="-mb-px flex space-x-2" aria-label="Tabs">
                             <button data-tab="weekly-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm active">Weekly Schedule</button>
+                            <button data-tab="shift-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">Shift Schedule</button>
                             <button data-tab="leave-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">HL & VL Schedule</button>
                             <button data-tab="leave-tracking" class="schedule-tab whitespace-nowrap font-medium text-sm">Leave Tracking</button>
                             <button data-tab="manage-managers" class="schedule-tab whitespace-nowrap font-medium text-sm">Manage Managers</button>
@@ -377,9 +379,17 @@
                             <label for="week-picker" class="font-semibold mr-2">Select Week:</label>
                             <input type="date" id="week-picker" class="p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto hidden md:block">
                             <table id="weekly-schedule-table" class="min-w-full bg-white border schedule-table"></table>
                         </div>
+                        <div id="weekly-schedule-mobile" class="block md:hidden space-y-4"></div>
+                    </div>
+
+                    <div id="shift-schedule-content" class="schedule-content hidden">
+                        <div class="overflow-x-auto hidden md:block">
+                            <table id="shift-schedule-table" class="min-w-full bg-white border schedule-table"></table>
+                        </div>
+                        <div id="shift-schedule-mobile" class="block md:hidden space-y-4"></div>
                     </div>
 
                     <div id="leave-schedule-content" class="schedule-content hidden">
@@ -606,13 +616,14 @@
             <div class="space-y-4">
                 <div>
                     <label for="leave-manager-select" class="block text-sm font-medium text-gray-700">Manager</label>
-                    <select id="leave-manager-select" class="mt-1 block w-full schedule-select"></select>
+                    <select id="leave-manager-select" class="mt-1 block w-full schedule-input"></select>
                 </div>
                  <div>
                     <label for="leave-type-select" class="block text-sm font-medium text-gray-700">Leave Type</label>
-                    <select id="leave-type-select" class="mt-1 block w-full schedule-select">
+                    <select id="leave-type-select" class="mt-1 block w-full schedule-input">
                         <option value="VL">Vacation Leave (VL)</option>
                         <option value="HL">Holiday Leave (HL)</option>
+                        <option value="SL">Sick Leave (SL)</option>
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
@@ -628,6 +639,7 @@
             </div>
             <div class="mt-6 space-y-2">
                 <button id="leave-save-btn" class="w-full px-4 py-2 bg-green-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-green-700">Save Leave</button>
+                <button id="leave-delete-btn" class="w-full px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700">Delete Leave</button>
                 <button id="leave-cancel-btn" class="w-full px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-300">Cancel</button>
             </div>
         </div>
@@ -841,7 +853,7 @@
             // --- MANAGER SCHEDULE FUNCTIONS ---
             async function loadManagers() {
                 try {
-                    const snapshot = await db.collection("managers").orderBy("name").get();
+                    const snapshot = await db.collection("managers").orderBy("sortOrder").get();
                     appState.managers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderManagerList();
                     const activeTab = document.querySelector('.schedule-tab.active')?.dataset.tab;
@@ -866,6 +878,7 @@
                     showToast("Could not load schedule data.", "error");
                 }
                 renderWeeklySchedule();
+                renderShiftSchedule();
             }
 
             function renderManagerList() {
@@ -889,11 +902,14 @@
 
             function renderWeeklySchedule() {
                 const table = document.getElementById('weekly-schedule-table');
-                if (!table) return;
+                const mobileContainer = document.getElementById('weekly-schedule-mobile');
+                if (!table || !mobileContainer) return;
+
                 const weekPicker = document.getElementById('week-picker');
                 const selectedDate = new Date(weekPicker.value + 'T00:00:00');
                 const weekDates = getWeekDateStrings(selectedDate);
 
+                // --- DESKTOP TABLE RENDER ---
                 let thead = '<thead><tr><th class="w-48">Manager</th>';
                 const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
                 weekDates.forEach((date, i) => {
@@ -904,33 +920,122 @@
 
                 let tbody = '<tbody>';
                 if (appState.managers.length === 0) {
-                    tbody += '<tr><td colspan="8" class="text-center text-gray-500 py-4">Please add managers in the "Manage Managers" tab first.</td></tr>';
+                    tbody += '<tr><td colspan="8" class="text-center text-gray-500 py-4">Please add managers first.</td></tr>';
                 } else {
                     appState.managers.forEach(manager => {
                         tbody += `<tr><td class="font-semibold px-2 text-left">${manager.name}</td>`;
                         weekDates.forEach(date => {
                             const scheduleKey = `${manager.id}_${date}`;
                             const scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
-                            
-                            let cellContent = '';
-                            if (scheduleData.shift) {
-                                cellContent = `
-                                    <div class="text-sm">
-                                        <p class="font-semibold">${scheduleData.shift}</p>
-                                        <p class="text-gray-500 text-xs">${scheduleData.time || ''}</p>
-                                    </div>
-                                `;
-                            } else {
-                                cellContent = '<span class="text-2xl font-light text-gray-400">+</span>';
-                            }
+                            let offClass = scheduleData.shift === 'OFF' ? 'text-red-500' : '';
+                            let cellContent = scheduleData.shift ? `<div class="text-sm"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-gray-500 text-xs">${scheduleData.time || ''}</p></div>` : '<span class="text-2xl font-light text-gray-400">+</span>';
                             tbody += `<td class="p-1"><div class="schedule-cell" data-manager-id="${manager.id}" data-date="${date}">${cellContent}</div></td>`;
                         });
                         tbody += '</tr>';
                     });
                 }
                 tbody += '</tbody>';
-
                 table.innerHTML = thead + tbody;
+
+                // --- MOBILE LIST RENDER ---
+                let mobileHTML = '';
+                if (appState.managers.length === 0) {
+                    mobileHTML = '<p class="text-center text-gray-500 py-4">Please add managers first.</p>';
+                } else {
+                    weekDates.forEach((date, i) => {
+                        const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                        mobileHTML += `<div class="bg-white rounded-lg shadow p-4">
+                                        <h4 class="font-bold text-lg mb-2 border-b pb-2">${days[i]} - ${formattedDate}</h4>
+                                        <div class="space-y-2">`;
+                        appState.managers.forEach(manager => {
+                            const scheduleKey = `${manager.id}_${date}`;
+                            const scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
+                            let offClass = scheduleData.shift === 'OFF' ? 'text-red-500' : '';
+                            let shiftContent = scheduleData.shift ? `<div class="text-right"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-gray-500 text-xs">${scheduleData.time || ''}</p></div>` : '<span class="text-xl font-light text-gray-400">+</span>';
+                            mobileHTML += `<div class="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 schedule-cell" data-manager-id="${manager.id}" data-date="${date}">
+                                            <p class="font-medium">${manager.name}</p>
+                                            ${shiftContent}
+                                         </div>`;
+                        });
+                        mobileHTML += `</div></div>`;
+                    });
+                }
+                mobileContainer.innerHTML = mobileHTML;
+            }
+            
+            function renderShiftSchedule() {
+                const table = document.getElementById('shift-schedule-table');
+                const mobileContainer = document.getElementById('shift-schedule-mobile');
+                if (!table || !mobileContainer) return;
+
+                const weekPicker = document.getElementById('week-picker');
+                const selectedDate = new Date(weekPicker.value + 'T00:00:00');
+                const weekDates = getWeekDateStrings(selectedDate);
+                
+                const shiftCategories = {
+                    "Open SL": ["Open SL"],
+                    "Open SM": ["Open SM"],
+                    "Mid SM": ["Mid SM"],
+                    "Close SL": ["Close SL"],
+                    "Close SM": ["Close SM"],
+                    "GY": ["GY"]
+                };
+
+                // --- DESKTOP TABLE RENDER ---
+                let thead = '<thead><tr><th class="w-48">Shift</th>';
+                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                weekDates.forEach((date, i) => {
+                    const datePart = date.split('-')[2];
+                    thead += `<th>${days[i]}<br><span class="font-normal text-sm">${datePart}</span></th>`;
+                });
+                thead += '</tr></thead>';
+
+                let tbody = '<tbody>';
+                for (const category in shiftCategories) {
+                    tbody += `<tr><td class="font-semibold px-2 text-left">${category}</td>`;
+                    weekDates.forEach(date => {
+                        let cellContent = '';
+                        appState.managers.forEach(manager => {
+                            const scheduleKey = `${manager.id}_${date}`;
+                            const scheduleData = appState.managerSchedules[scheduleKey];
+                            if (scheduleData && shiftCategories[category].includes(scheduleData.shift)) {
+                                cellContent += `<div class="text-xs p-1">${manager.name}</div>`;
+                            }
+                        });
+                        tbody += `<td class="p-1 align-top text-xs">${cellContent}</td>`;
+                    });
+                    tbody += '</tr>';
+                }
+                tbody += '</tbody>';
+                table.innerHTML = thead + tbody;
+                
+                 // --- MOBILE LIST RENDER ---
+                let mobileHTML = '';
+                weekDates.forEach((date, i) => {
+                    const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                    mobileHTML += `<div class="bg-white rounded-lg shadow p-4">
+                                    <h4 class="font-bold text-lg mb-2 border-b pb-2">${days[i]} - ${formattedDate}</h4>
+                                    <div class="space-y-3">`;
+                    for (const category in shiftCategories) {
+                        let managerNames = '';
+                        appState.managers.forEach(manager => {
+                            const scheduleKey = `${manager.id}_${date}`;
+                            const scheduleData = appState.managerSchedules[scheduleKey];
+                            if (scheduleData && shiftCategories[category].includes(scheduleData.shift)) {
+                                managerNames += `<div class="text-sm">${manager.name}</div>`;
+                            }
+                        });
+
+                        if(managerNames) {
+                             mobileHTML += `<div class="flex justify-between items-start">
+                                            <p class="font-semibold text-sm w-1/3 text-left">${category}</p>
+                                            <div class="w-2/3 text-right">${managerNames}</div>
+                                          </div>`;
+                        }
+                    }
+                    mobileHTML += `</div></div>`;
+                });
+                mobileContainer.innerHTML = mobileHTML;
             }
 
             function openScheduleModal(managerId, date) {
@@ -947,7 +1052,7 @@
                 modal.dataset.managerId = managerId;
                 modal.dataset.date = date;
 
-                const shiftOptions = ["", "Open SL", "Open SM", "Mid SM", "Close SL", "Close SM", "GY", "Scheduling", "VL", "HL", "OFF", "Ordering", "People Day", "MDP", "Pull-out", "Marketing"];
+                const shiftOptions = ["", "Open SL", "Open SM", "Mid SM", "Close SL", "Close SM", "GY", "Scheduling", "VL", "HL", "SL", "OFF", "Ordering", "People Day", "MDP", "Pull-out", "Marketing", "Store Day", "Travel", "Class", "Payroll", "Inventory", "Meeting", "Leave"];
                 
                 shiftSelect.innerHTML = shiftOptions.map(o => `<option value="${o}">${o}</option>`).join('');
 
@@ -957,7 +1062,7 @@
                 shiftSelect.value = scheduleData.shift;
                 timeInput.value = scheduleData.time;
                 
-                timeContainer.style.display = ['VL', 'HL', 'OFF', ''].includes(scheduleData.shift) ? 'none' : 'block';
+                timeContainer.style.display = ['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(scheduleData.shift) ? 'none' : 'block';
 
                 modal.classList.remove('hidden');
             }
@@ -971,7 +1076,7 @@
 
                 const scheduleKey = `${managerId}_${date}`;
                 const weekKey = getWeekDateStrings(new Date(date + 'T00:00:00'))[0];
-                const scheduleData = { shift: shift, time: ['VL', 'HL', 'OFF', ''].includes(shift) ? '' : time };
+                const scheduleData = { shift: shift, time: ['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(shift) ? '' : time };
 
                 try {
                     const scheduleRef = db.collection("manager_schedules").doc(weekKey);
@@ -980,7 +1085,7 @@
                     const leaveRecordId = `${managerId}_${date}`;
                     const leaveRecordRef = db.collection('leave_records').doc(leaveRecordId);
 
-                    if (['VL', 'HL'].includes(shift)) {
+                    if (['VL', 'HL', 'SL'].includes(shift)) {
                         const manager = appState.managers.find(m => m.id === managerId);
                         await leaveRecordRef.set({
                             managerId: managerId,
@@ -995,6 +1100,7 @@
                     showToast("Schedule saved!", "success");
                     appState.managerSchedules[scheduleKey] = scheduleData;
                     renderWeeklySchedule();
+                    renderShiftSchedule();
                     document.getElementById('schedule-modal').classList.add('hidden');
                 } catch (error) {
                     console.error("Error saving schedule: ", error);
@@ -1022,6 +1128,7 @@
                     showToast("Schedule cleared!", "success");
                     delete appState.managerSchedules[scheduleKey];
                     renderWeeklySchedule();
+                    renderShiftSchedule();
                     document.getElementById('schedule-modal').classList.add('hidden');
                 } catch (error) {
                     console.error("Error clearing schedule: ", error);
@@ -1154,7 +1261,7 @@
 
                     const leaveSummary = records.reduce((acc, record) => {
                         if (!acc[record.managerName]) {
-                            acc[record.managerName] = { VL: 0, HL: 0 };
+                            acc[record.managerName] = { VL: 0, HL: 0, SL: 0 };
                         }
                         acc[record.managerName][record.leaveType]++;
                         return acc;
@@ -1169,22 +1276,27 @@
                     for (const managerName in leaveSummary) {
                         const vlCount = leaveSummary[managerName].VL;
                         const hlCount = leaveSummary[managerName].HL;
-                        const total = vlCount + hlCount;
+                        const slCount = leaveSummary[managerName].SL;
+                        const total = vlCount + hlCount + slCount;
                         content += `
                             <div class="bg-gray-50 p-4 rounded-lg">
                                 <h4 class="font-bold text-lg">${managerName}</h4>
-                                <div class="mt-2 grid grid-cols-3 gap-4 text-center">
+                                <div class="mt-2 grid grid-cols-4 gap-4 text-center">
                                     <div>
                                         <p class="text-2xl font-bold text-blue-600">${vlCount}</p>
-                                        <p class="text-sm text-gray-500">Vacation Leaves</p>
+                                        <p class="text-sm text-gray-500">VL</p>
                                     </div>
                                     <div>
                                         <p class="text-2xl font-bold text-green-600">${hlCount}</p>
-                                        <p class="text-sm text-gray-500">Holiday Leaves</p>
+                                        <p class="text-sm text-gray-500">HL</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-2xl font-bold text-yellow-500">${slCount}</p>
+                                        <p class="text-sm text-gray-500">SL</p>
                                     </div>
                                     <div>
                                         <p class="text-2xl font-bold text-gray-800">${total}</p>
-                                        <p class="text-sm text-gray-500">Total Leaves</p>
+                                        <p class="text-sm text-gray-500">Total</p>
                                     </div>
                                 </div>
                             </div>
@@ -1689,6 +1801,8 @@
                             const weekPicker = document.getElementById('week-picker');
                             const weekDates = getWeekDateStrings(new Date(weekPicker.value + 'T00:00:00'));
                             loadScheduleForWeek(weekDates);
+                        } else if (tab === 'shift-schedule') {
+                            renderShiftSchedule();
                         } else if (tab === 'leave-schedule') {
                             loadPlottedLeavesForMonth();
                         } else if (tab === 'leave-tracking') {
@@ -1744,6 +1858,14 @@
                         openScheduleModal(cell.dataset.managerId, cell.dataset.date);
                     }
                 });
+                
+                const scheduleMobileContainer = document.getElementById('weekly-schedule-mobile');
+                scheduleMobileContainer?.addEventListener('click', (e) => {
+                    const cell = e.target.closest('.schedule-cell');
+                    if (cell && cell.dataset.managerId) {
+                        openScheduleModal(cell.dataset.managerId, cell.dataset.date);
+                    }
+                });
 
                 // Modal Listeners
                 document.getElementById('modal-cancel-btn')?.addEventListener('click', () => {
@@ -1754,7 +1876,7 @@
 
                 document.getElementById('modal-shift-select')?.addEventListener('change', (e) => {
                     const timeContainer = document.getElementById('modal-time-container');
-                    if (['VL', 'HL', 'OFF', ''].includes(e.target.value)) {
+                    if (['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(e.target.value)) {
                         timeContainer.style.display = 'none';
                     } else {
                         timeContainer.style.display = 'block';
