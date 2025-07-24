@@ -79,6 +79,112 @@
             background-color: #DA291C;
             color: white;
         }
+        .schedule-tab {
+            color: #4b5563; /* Darker gray for inactive tabs */
+            padding: 0.75rem 1rem;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+        .schedule-tab:hover {
+            background-color: #f3f4f6;
+            border-bottom: 3px solid #d1d5db;
+        }
+        .schedule-tab.active {
+            background-color: #4A5568; /* Dark Slate Gray from image */
+            color: white;
+            font-weight: 600;
+            border-color: transparent;
+            border-radius: 6px 6px 0 0;
+        }
+        .schedule-tab.active:hover {
+             background-color: #4A5568;
+        }
+        .schedule-table th, .schedule-table td {
+            text-align: center;
+            padding: 0.25rem;
+            border: 1px solid #e2e8f0;
+            vertical-align: middle;
+            height: 70px;
+        }
+        .schedule-table th {
+            background-color: #f8fafc;
+            padding: 0.75rem;
+        }
+        .schedule-cell {
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .schedule-cell:hover {
+            background-color: #f7fafc;
+        }
+        .schedule-input {
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            background-color: white;
+            text-align: center;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+        .schedule-input:focus {
+            outline: none;
+            border-color: #DA291C;
+            box-shadow: 0 0 0 2px rgba(218, 41, 28, 0.2);
+        }
+        /* Calendar Styles */
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: #e2e8f0;
+            border: 1px solid #e2e8f0;
+        }
+        .calendar-header {
+            text-align: center;
+            font-weight: 600;
+            padding: 0.5rem 0;
+            background-color: #f8fafc;
+        }
+        .calendar-day {
+            min-height: 120px;
+            padding: 0.5rem;
+            background-color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .calendar-day:hover {
+            background-color: #f7fafc;
+        }
+        .calendar-day.other-month {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+        }
+        .calendar-day .day-number {
+            font-weight: 500;
+        }
+        .leave-entry {
+            font-size: 0.75rem;
+            padding: 2px 4px;
+            border-radius: 4px;
+            margin-top: 4px;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .leave-vl { background-color: #3b82f6; }
+        .leave-hl { background-color: #10b981; }
+        .view-only {
+            pointer-events: none;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body class="text-gray-800">
@@ -128,6 +234,7 @@
                         <button data-view="dashboard" class="nav-button active px-3 py-2 rounded-lg font-semibold">Dashboard</button>
                         <button data-view="insights" class="nav-button px-3 py-2 rounded-lg font-semibold">Insights</button>
                         <button data-view="evaluator" class="nav-button px-3 py-2 rounded-lg font-semibold">Evaluator</button>
+                        <button data-view="manager-schedule" class="nav-button px-3 py-2 rounded-lg font-semibold">Manager Schedule</button>
                         <button data-view="datamgmt" class="nav-button px-3 py-2 rounded-lg font-semibold">Add Data</button>
                         <button data-view="activities" class="nav-button px-3 py-2 rounded-lg font-semibold">Activities</button>
                         <button data-view="historical" class="nav-button px-3 py-2 rounded-lg font-semibold">History</button>
@@ -143,14 +250,15 @@
             </div>
         </header>
         
-        <nav id="mobile-nav" class="md:hidden bg-white shadow-md p-2 grid grid-cols-3 gap-1 sticky top-0 z-10">
-            <button data-view="dashboard" class="nav-button active flex-1 text-sm py-2 rounded-lg font-semibold">Dashboard</button>
-            <button data-view="insights" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">Insights</button>
-            <button data-view="evaluator" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">Evaluator</button>
-            <button data-view="datamgmt" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">Add Data</button>
-            <button data-view="activities" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">Activities</button>
-            <button data-view="historical" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold">History</button>
-            <button data-view="admin" class="nav-button flex-1 text-sm py-2 rounded-lg font-semibold hidden">Admin</button>
+        <nav id="mobile-nav" class="md:hidden bg-white shadow-md p-2 grid grid-cols-4 gap-1 sticky top-0 z-10">
+            <button data-view="dashboard" class="nav-button active flex-1 text-xs py-2 rounded-lg font-semibold">Dashboard</button>
+            <button data-view="insights" class="nav-button flex-1 text-xs py-2 rounded-lg font-semibold">Insights</button>
+            <button data-view="evaluator" class="nav-button flex-1 text-xs py-2 rounded-lg font-semibold">Evaluator</button>
+            <button data-view="manager-schedule" class="nav-button flex-1 text-xs py-2 rounded-lg font-semibold">Schedule</button>
+            <button data-view="datamgmt" class="nav-button flex-1 text-xs py-2 rounded-lg font-semibold">Add Data</button>
+            <button data-view="activities" class="nav-button flex-1 text-xs py-2 rounded-lg font-semibold">Activities</button>
+            <button data-view="historical" class="nav-button flex-1 text-xs py-2 rounded-lg font-semibold">History</button>
+            <button data-view="admin" class="nav-button flex-1 text-xs py-2 rounded-lg font-semibold hidden">Admin</button>
         </nav>
 
 
@@ -248,8 +356,71 @@
                     </div>
                 </div>
             </section>
+
+            <section id="manager-schedule-section" class="view hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold mb-1">Manager Schedule</h2>
+                    <p class="text-gray-600">Plot daily shifts and track leaves for managers.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <div id="manager-schedule-tabs" class="border-b border-gray-200 mb-6">
+                        <nav class="-mb-px flex space-x-2" aria-label="Tabs">
+                            <button data-tab="weekly-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm active">Weekly Schedule</button>
+                            <button data-tab="leave-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">HL & VL Schedule</button>
+                            <button data-tab="leave-tracking" class="schedule-tab whitespace-nowrap font-medium text-sm">Leave Tracking</button>
+                            <button data-tab="manage-managers" class="schedule-tab whitespace-nowrap font-medium text-sm">Manage Managers</button>
+                        </nav>
+                    </div>
+
+                    <div id="weekly-schedule-content" class="schedule-content">
+                        <div class="flex justify-end items-center mb-4">
+                            <label for="week-picker" class="font-semibold mr-2">Select Week:</label>
+                            <input type="date" id="week-picker" class="p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table id="weekly-schedule-table" class="min-w-full bg-white border schedule-table"></table>
+                        </div>
+                    </div>
+
+                    <div id="leave-schedule-content" class="schedule-content hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center space-x-2">
+                                <button id="prev-month-btn" class="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300">&lt;</button>
+                                <h3 id="calendar-month-year" class="text-xl font-bold text-center w-48"></h3>
+                                <button id="next-month-btn" class="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300">&gt;</button>
+                            </div>
+                            <button id="add-leave-btn" class="px-4 py-2 bg-[#DA291C] text-white font-semibold rounded-lg hover:bg-red-700">Add Leave</button>
+                        </div>
+                        <div id="leave-calendar-container"></div>
+                    </div>
+
+                    <div id="leave-tracking-content" class="schedule-content hidden">
+                        <h3 class="text-xl font-bold mb-4">Manager Leave Summary</h3>
+                        <div id="leave-records-container" class="space-y-4"></div>
+                    </div>
+
+                    <div id="manage-managers-content" class="schedule-content hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-xl font-bold mb-4">Add New Manager</h3>
+                                <form id="add-manager-form" class="space-y-4">
+                                    <div>
+                                        <label for="manager-name" class="block font-semibold mb-1">Manager Name</label>
+                                        <input type="text" id="manager-name" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                    </div>
+                                    <button type="submit" class="w-full bg-[#DA291C] text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition duration-300">Add Manager</button>
+                                </form>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold mb-4">Current Managers</h3>
+                                <div id="manager-list-container" class="space-y-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
             
-             <section id="datamgmt-section" class="view hidden">
+            <section id="datamgmt-section" class="view hidden">
                  <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Add New Data</h2>
                     <p class="text-gray-600">Add new daily records and future activities to improve forecast accuracy.</p>
@@ -391,6 +562,78 @@
     </div>
     <div id="toast-container"></div>
 
+    <!-- Schedule Editing Modal -->
+    <div id="schedule-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-sm shadow-lg rounded-md bg-white">
+            <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4" id="modal-title">Edit Schedule</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="modal-shift-select" class="block text-sm font-medium text-gray-700">Shift</label>
+                    <select id="modal-shift-select" class="mt-1 block w-full schedule-input"></select>
+                </div>
+                <div id="modal-time-container">
+                    <label for="modal-time-input" class="block text-sm font-medium text-gray-700">Time of Duty</label>
+                    <input type="text" id="modal-time-input" list="time-choices" class="mt-1 block w-full schedule-input" placeholder="e.g., 9am-6pm or select">
+                    <datalist id="time-choices">
+                        <option value="6am-3pm"></option>
+                        <option value="7am-4pm"></option>
+                        <option value="2pm-11pm"></option>
+                        <option value="4pm-1am"></option>
+                        <option value="8am-5pm"></option>
+                        <option value="10pm-7am"></option>
+                        <option value="10am-7pm"></option>
+                    </datalist>
+                </div>
+            </div>
+            <div class="mt-6 space-y-2">
+                <button id="modal-save-btn" class="w-full px-4 py-2 bg-green-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    Save
+                </button>
+                 <button id="modal-delete-btn" class="w-full px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    Clear Schedule
+                </button>
+                <button id="modal-cancel-btn" class="w-full px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Plotting Modal -->
+    <div id="leave-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4" id="leave-modal-title">Plot Leave</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="leave-manager-select" class="block text-sm font-medium text-gray-700">Manager</label>
+                    <select id="leave-manager-select" class="mt-1 block w-full schedule-select"></select>
+                </div>
+                 <div>
+                    <label for="leave-type-select" class="block text-sm font-medium text-gray-700">Leave Type</label>
+                    <select id="leave-type-select" class="mt-1 block w-full schedule-select">
+                        <option value="VL">Vacation Leave (VL)</option>
+                        <option value="HL">Holiday Leave (HL)</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="leave-start-date" class="block text-sm font-medium text-gray-700">Start Date</label>
+                        <input type="date" id="leave-start-date" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                    </div>
+                    <div>
+                        <label for="leave-end-date" class="block text-sm font-medium text-gray-700">End Date</label>
+                        <input type="date" id="leave-end-date" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 space-y-2">
+                <button id="leave-save-btn" class="w-full px-4 py-2 bg-green-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-green-700">Save Leave</button>
+                <button id="leave-cancel-btn" class="w-full px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-300">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             
@@ -420,6 +663,10 @@
                 activitiesData: null,
                 historicalData: null,
                 usersData: null,
+                managers: [],
+                managerSchedules: {},
+                plottedLeaves: [],
+                calendarDate: new Date(),
                 accessLevel: 3, // Default to viewer
             };
             
@@ -441,18 +688,25 @@
                 }, 3000);
             }
 
-            // --- DATE HELPER FUNCTION ---
-            /**
-             * Converts a Date object to a 'YYYY-MM-DD' string based on the local date.
-             * This is timezone-safe for matching dates.
-             * @param {Date} date The date to convert.
-             * @returns {string} The formatted date string.
-             */
+            // --- DATE HELPER FUNCTIONS ---
             function getLocalDateString(date) {
                 const year = date.getFullYear();
                 const month = (date.getMonth() + 1).toString().padStart(2, '0');
                 const day = date.getDate().toString().padStart(2, '0');
                 return `${year}-${month}-${day}`;
+            }
+
+            function getWeekDateStrings(date) {
+                const startOfWeek = new Date(date);
+                const dayOfWeek = startOfWeek.getDay();
+                const diff = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust for Sunday
+                startOfWeek.setDate(diff);
+
+                return Array.from({ length: 7 }).map((_, i) => {
+                    const weekDay = new Date(startOfWeek);
+                    weekDay.setDate(startOfWeek.getDate() + i);
+                    return getLocalDateString(weekDay);
+                });
             }
 
             // --- DATA FETCHING & PROCESSING ---
@@ -461,43 +715,35 @@
                 document.getElementById('loading-text').textContent = 'Loading All Application Data...';
                 
                 try {
-                    // --- FIX: Separate queries for Dashboard (future) and Evaluator (past) ---
                     const thirtyFiveDaysAgo = new Date();
                     thirtyFiveDaysAgo.setDate(thirtyFiveDaysAgo.getDate() - 35);
 
                     const [
                         dashboardLogSnapshot,
-                        allHistoricalSnapshot, // All historical data for the history tab
+                        allHistoricalSnapshot,
                         activitiesSnapshot,
                         usersSnapshot,
-                        evalLogSnapshot, // Forecast logs for the evaluator
-                        evalHistoricalSnapshot // Historical data for the evaluator
+                        evalLogSnapshot,
+                        evalHistoricalSnapshot
                     ] = await Promise.all([
-                        // Query for Dashboard: latest 15 forecasts for the future
                         db.collection("forecast_log").orderBy("generated_on", "desc").limit(15).get(),
-                        // Query for History Tab: all historical data
                         db.collection("historical_data").orderBy("date", "desc").get(),
-                        // Query for Activities
                         db.collection("future_activities").orderBy("date", "asc").get(),
-                        // Query for Users (still needed for the Admin panel)
                         db.collection("users").get(),
-                        // Query for Evaluator: forecast logs from the last 35 days
                         db.collection("forecast_log").where("forecast_for_date", ">=", thirtyFiveDaysAgo).get(),
-                        // Query for Evaluator: historical data from the last 35 days
                         db.collection("historical_data").where("date", ">=", thirtyFiveDaysAgo).orderBy("date", "desc").get()
                     ]);
 
-                    // Process data for general app use (History tab, etc.)
                     appState.historicalData = allHistoricalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     appState.activitiesData = activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     appState.usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                    // --- Process Dashboard Data ---
+                    
+                    const provisionalBanner = document.getElementById('provisional-forecast-banner');
                     if (dashboardLogSnapshot.empty) {
-                        document.getElementById('provisional-forecast-banner').classList.remove('hidden');
+                        provisionalBanner?.classList.remove('hidden');
                         generateProvisionalForecast();
                     } else {
-                        document.getElementById('provisional-forecast-banner').classList.add('hidden');
+                        provisionalBanner?.classList.add('hidden');
                         const forecastDocs = dashboardLogSnapshot.docs.map(doc => doc.data()).reverse();
                         appState.forecastData = {
                             dates: forecastDocs.map(d => d.forecast_for_date.toDate()),
@@ -522,8 +768,6 @@
                         });
                     }
 
-
-                    // --- Process and Merge Data for Evaluator ---
                     const latestForecastsForEval = new Map();
                     evalLogSnapshot.docs.forEach(doc => {
                         const log = doc.data();
@@ -559,70 +803,29 @@
                     
                     appState.evaluationData = mergedEvalData.sort((a,b) => a.date - b.date);
                     
-                    // --- Final UI Update ---
                     updateView();
 
                 } catch (error) {
-                    let userMessage;
-                    const lowerCaseError = error.message ? error.message.toLowerCase() : '';
-                    if (error.code === 'permission-denied' || lowerCaseError.includes('permission') || lowerCaseError.includes('restricted to administrators')) {
-                         userMessage = `
-                            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
-                                <p class="font-bold text-lg">Firestore Security Rule Error</p>
-                                <p>The application was denied access to the database. This usually happens after a successful sign-in.</p>
-                                <p class="mt-4 text-sm">
-                                    <strong>Action Required:</strong> Your Firestore Security Rules are too restrictive. Please go to your Firebase Console, navigate to the "Firestore Database" section, and click on the "Rules" tab.
-                                </p>
-                                <p class="mt-2 text-sm">
-                                    For this app to work, your rules must allow authenticated users to read and write. Replace your current rules with this:
-                                </p>
-                                <pre class="bg-gray-200 text-gray-800 rounded p-2 mt-2 text-xs text-left"><code>rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}</code></pre>
-                            </div>
-                        `;
-                    } else if (error.code === 'failed-precondition') {
-                         userMessage = `
-                            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
-                                <p class="font-bold text-lg">Firestore Index Required</p>
-                                <p>A database index is required for the Evaluator to work. This is a one-time setup.</p>
-                                <p class="mt-4 text-sm">
-                                    <strong>Action Required:</strong> Open the browser's developer console (usually by pressing F12). You will find an error message from Firebase containing a long URL.
-                                </p>
-                                <p class="mt-2 text-sm">
-                                   Copy that full URL, paste it into a new browser tab, and click the "Create Index" button on the page that loads. Then, reload this application.
-                                </p>
-                            </div>
-                        `;
-                    } else {
-                        userMessage = `<div class="text-center p-8"><h2 class="text-2xl font-bold text-red-600">Error Loading Data</h2><p class="text-gray-700 mt-2">${error.message}</p><p class="mt-4 text-sm text-gray-500">Please check the browser console for more details.</p></div>`;
-                    }
-                    document.getElementById('loading-overlay').innerHTML = `<div class="p-8">${userMessage}</div>`;
                     console.error("Firebase Error:", error);
+                    showToast("Error loading application data. Some features may not work.", "error");
                 } finally {
-                    if(!document.getElementById('loading-overlay').innerHTML.includes('Error')) {
-                       document.getElementById('loading-overlay').style.display = 'none';
+                    const loadingOverlay = document.getElementById('loading-overlay');
+                    if (loadingOverlay) {
+                       loadingOverlay.style.display = 'none';
                     }
                 }
             }
             
             function generateProvisionalForecast() {
+                if (!appState.historicalData || appState.historicalData.length < 7) {
+                    showToast("Not enough historical data for a provisional forecast.", "error");
+                    return;
+                }
                 const dates = Array.from({length: 15}, (_, i) => {
                     const d = new Date();
                     d.setDate(d.getDate() + i + 1);
                     return d;
                 });
-
-                if (!appState.historicalData || appState.historicalData.length < 7) {
-                    showToast("Not enough historical data for a provisional forecast.", "error");
-                    appState.forecastData = { dates: dates, sales: [], customers: [] };
-                    return;
-                }
                 const last7DaysCustomers = appState.historicalData.slice(0, 7).map(d => d.customers);
                 const avgCustomers = last7DaysCustomers.reduce((a, b) => a + b, 0) / 7;
                 const last7DaysATV = appState.historicalData.slice(0, 7).map(d => (d.sales / d.customers));
@@ -634,6 +837,367 @@ service cloud.firestore {
                     sales: Array(15).fill(avgCustomers * avgATV)
                 };
             }
+            
+            // --- MANAGER SCHEDULE FUNCTIONS ---
+            async function loadManagers() {
+                try {
+                    const snapshot = await db.collection("managers").orderBy("name").get();
+                    appState.managers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderManagerList();
+                    const activeTab = document.querySelector('.schedule-tab.active')?.dataset.tab;
+                    if (activeTab === 'weekly-schedule') {
+                        renderWeeklySchedule();
+                    } else if (activeTab === 'leave-schedule') {
+                        renderLeaveCalendar();
+                    }
+                } catch (error) {
+                    console.error("Error loading managers:", error);
+                    showToast("Could not load managers.", "error");
+                }
+            }
+
+            async function loadScheduleForWeek(week) {
+                const weekKey = week[0];
+                try {
+                    const doc = await db.collection("manager_schedules").doc(weekKey).get();
+                    appState.managerSchedules = doc.exists ? doc.data() : {};
+                } catch (error) {
+                    console.error("Error loading schedule:", error);
+                    showToast("Could not load schedule data.", "error");
+                }
+                renderWeeklySchedule();
+            }
+
+            function renderManagerList() {
+                const container = document.getElementById('manager-list-container');
+                if (!container) return;
+                container.innerHTML = '';
+                if (appState.managers.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500">No managers added yet.</p>';
+                    return;
+                }
+                appState.managers.forEach(manager => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg';
+                    div.innerHTML = `
+                        <p class="font-medium">${manager.name}</p>
+                        <button data-id="${manager.id}" class="delete-manager-btn text-red-500 hover:text-red-700 font-semibold">Delete</button>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            function renderWeeklySchedule() {
+                const table = document.getElementById('weekly-schedule-table');
+                if (!table) return;
+                const weekPicker = document.getElementById('week-picker');
+                const selectedDate = new Date(weekPicker.value + 'T00:00:00');
+                const weekDates = getWeekDateStrings(selectedDate);
+
+                let thead = '<thead><tr><th class="w-48">Manager</th>';
+                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                weekDates.forEach((date, i) => {
+                    const datePart = date.split('-')[2];
+                    thead += `<th>${days[i]}<br><span class="font-normal text-sm">${datePart}</span></th>`;
+                });
+                thead += '</tr></thead>';
+
+                let tbody = '<tbody>';
+                if (appState.managers.length === 0) {
+                    tbody += '<tr><td colspan="8" class="text-center text-gray-500 py-4">Please add managers in the "Manage Managers" tab first.</td></tr>';
+                } else {
+                    appState.managers.forEach(manager => {
+                        tbody += `<tr><td class="font-semibold px-2 text-left">${manager.name}</td>`;
+                        weekDates.forEach(date => {
+                            const scheduleKey = `${manager.id}_${date}`;
+                            const scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
+                            
+                            let cellContent = '';
+                            if (scheduleData.shift) {
+                                cellContent = `
+                                    <div class="text-sm">
+                                        <p class="font-semibold">${scheduleData.shift}</p>
+                                        <p class="text-gray-500 text-xs">${scheduleData.time || ''}</p>
+                                    </div>
+                                `;
+                            } else {
+                                cellContent = '<span class="text-2xl font-light text-gray-400">+</span>';
+                            }
+                            tbody += `<td class="p-1"><div class="schedule-cell" data-manager-id="${manager.id}" data-date="${date}">${cellContent}</div></td>`;
+                        });
+                        tbody += '</tr>';
+                    });
+                }
+                tbody += '</tbody>';
+
+                table.innerHTML = thead + tbody;
+            }
+
+            function openScheduleModal(managerId, date) {
+                const modal = document.getElementById('schedule-modal');
+                const title = document.getElementById('modal-title');
+                const shiftSelect = document.getElementById('modal-shift-select');
+                const timeInput = document.getElementById('modal-time-input');
+                const timeContainer = document.getElementById('modal-time-container');
+
+                const manager = appState.managers.find(m => m.id === managerId);
+                const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                title.textContent = `Edit Schedule for ${manager.name} on ${formattedDate}`;
+
+                modal.dataset.managerId = managerId;
+                modal.dataset.date = date;
+
+                const shiftOptions = ["", "Open SL", "Open SM", "Mid SM", "Close SL", "Close SM", "GY", "Scheduling", "VL", "HL", "OFF", "Ordering", "People Day", "MDP", "Pull-out", "Marketing"];
+                
+                shiftSelect.innerHTML = shiftOptions.map(o => `<option value="${o}">${o}</option>`).join('');
+
+                const scheduleKey = `${managerId}_${date}`;
+                const scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
+
+                shiftSelect.value = scheduleData.shift;
+                timeInput.value = scheduleData.time;
+                
+                timeContainer.style.display = ['VL', 'HL', 'OFF', ''].includes(scheduleData.shift) ? 'none' : 'block';
+
+                modal.classList.remove('hidden');
+            }
+
+            async function saveScheduleFromModal() {
+                const modal = document.getElementById('schedule-modal');
+                const managerId = modal.dataset.managerId;
+                const date = modal.dataset.date;
+                const shift = document.getElementById('modal-shift-select').value;
+                const time = document.getElementById('modal-time-input').value;
+
+                const scheduleKey = `${managerId}_${date}`;
+                const weekKey = getWeekDateStrings(new Date(date + 'T00:00:00'))[0];
+                const scheduleData = { shift: shift, time: ['VL', 'HL', 'OFF', ''].includes(shift) ? '' : time };
+
+                try {
+                    const scheduleRef = db.collection("manager_schedules").doc(weekKey);
+                    await scheduleRef.set({ [scheduleKey]: scheduleData }, { merge: true });
+
+                    const leaveRecordId = `${managerId}_${date}`;
+                    const leaveRecordRef = db.collection('leave_records').doc(leaveRecordId);
+
+                    if (['VL', 'HL'].includes(shift)) {
+                        const manager = appState.managers.find(m => m.id === managerId);
+                        await leaveRecordRef.set({
+                            managerId: managerId,
+                            managerName: manager.name,
+                            leaveType: shift,
+                            date: firebase.firestore.Timestamp.fromDate(new Date(date + 'T00:00:00'))
+                        });
+                    } else {
+                        await leaveRecordRef.delete().catch(() => {});
+                    }
+
+                    showToast("Schedule saved!", "success");
+                    appState.managerSchedules[scheduleKey] = scheduleData;
+                    renderWeeklySchedule();
+                    document.getElementById('schedule-modal').classList.add('hidden');
+                } catch (error) {
+                    console.error("Error saving schedule: ", error);
+                    showToast("Failed to save schedule.", "error");
+                }
+            }
+
+            async function clearScheduleFromModal() {
+                 const modal = document.getElementById('schedule-modal');
+                const managerId = modal.dataset.managerId;
+                const date = modal.dataset.date;
+                
+                const scheduleKey = `${managerId}_${date}`;
+                const weekKey = getWeekDateStrings(new Date(date + 'T00:00:00'))[0];
+                
+                try {
+                    const scheduleRef = db.collection("manager_schedules").doc(weekKey);
+                    await scheduleRef.update({
+                        [scheduleKey]: firebase.firestore.FieldValue.delete()
+                    });
+
+                    const leaveRecordId = `${managerId}_${date}`;
+                    await db.collection('leave_records').doc(leaveRecordId).delete().catch(() => {});
+
+                    showToast("Schedule cleared!", "success");
+                    delete appState.managerSchedules[scheduleKey];
+                    renderWeeklySchedule();
+                    document.getElementById('schedule-modal').classList.add('hidden');
+                } catch (error) {
+                    console.error("Error clearing schedule: ", error);
+                    showToast("Failed to clear schedule.", "error");
+                }
+            }
+
+
+            // --- NEW LEAVE CALENDAR FUNCTIONS ---
+            
+            function renderLeaveCalendar() {
+                const container = document.getElementById('leave-calendar-container');
+                if (!container) return;
+
+                const monthYearEl = document.getElementById('calendar-month-year');
+                const currentMonth = appState.calendarDate.getMonth();
+                const currentYear = appState.calendarDate.getFullYear();
+                
+                monthYearEl.textContent = `${appState.calendarDate.toLocaleString('default', { month: 'long' })} ${currentYear}`;
+
+                const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+                const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                
+                const dayOffset = firstDay === 0 ? 6 : firstDay - 1;
+
+                let calendarHTML = '<div class="calendar-header">Mon</div><div class="calendar-header">Tue</div><div class="calendar-header">Wed</div><div class="calendar-header">Thu</div><div class="calendar-header">Fri</div><div class="calendar-header">Sat</div><div class="calendar-header">Sun</div>';
+
+                for (let i = 0; i < dayOffset; i++) {
+                    calendarHTML += '<div class="calendar-day other-month"></div>';
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = getLocalDateString(new Date(currentYear, currentMonth, day));
+                    let leaveEntriesHTML = '';
+                    appState.plottedLeaves.forEach(leave => {
+                        const leaveStart = new Date(leave.startDate + 'T00:00:00');
+                        const leaveEnd = new Date(leave.endDate + 'T00:00:00');
+                        const currentDate = new Date(dateStr + 'T00:00:00');
+
+                        if (currentDate >= leaveStart && currentDate <= leaveEnd) {
+                            leaveEntriesHTML += `<div class="leave-entry ${leave.leaveType === 'VL' ? 'leave-vl' : 'leave-hl'}">${leave.managerName}</div>`;
+                        }
+                    });
+
+                    calendarHTML += `<div class="calendar-day" data-date="${dateStr}"><div class="day-number">${day}</div><div class="leave-entries">${leaveEntriesHTML}</div></div>`;
+                }
+                
+                container.innerHTML = `<div class="calendar">${calendarHTML}</div>`;
+            }
+
+            async function loadPlottedLeavesForMonth() {
+                const year = appState.calendarDate.getFullYear();
+                try {
+                    const snapshot = await db.collection('plotted_leaves').where('year', '==', year).get();
+                    appState.plottedLeaves = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                    renderLeaveCalendar();
+                } catch(error) {
+                    console.error("Error fetching leaves:", error);
+                    showToast("Could not load leave data.", "error");
+                }
+            }
+
+            function openLeaveModal(date = null) {
+                const modal = document.getElementById('leave-modal');
+                const managerSelect = document.getElementById('leave-manager-select');
+                const startDateInput = document.getElementById('leave-start-date');
+                const endDateInput = document.getElementById('leave-end-date');
+
+                managerSelect.innerHTML = appState.managers.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                
+                const selectedDate = date ? date : getLocalDateString(new Date());
+                startDateInput.value = selectedDate;
+                endDateInput.value = selectedDate;
+
+                modal.classList.remove('hidden');
+            }
+
+            async function saveLeaveFromModal() {
+                const managerId = document.getElementById('leave-manager-select').value;
+                const managerName = appState.managers.find(m => m.id === managerId).name;
+                const leaveType = document.getElementById('leave-type-select').value;
+                const startDate = document.getElementById('leave-start-date').value;
+                const endDate = document.getElementById('leave-end-date').value;
+
+                if (!managerId || !startDate || !endDate) {
+                    showToast("Please fill all fields.", "error");
+                    return;
+                }
+
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+
+                try {
+                    await db.collection('plotted_leaves').add({
+                        managerId,
+                        managerName,
+                        leaveType,
+                        startDate,
+                        endDate,
+                        year: start.getFullYear()
+                    });
+
+                    for (let d = start; d <= end; d.setDate(d.getDate() + 1)) {
+                        const dateStr = getLocalDateString(d);
+                        const weekKey = getWeekDateStrings(d)[0];
+                        const scheduleKey = `${managerId}_${dateStr}`;
+                        const scheduleData = { shift: leaveType, time: '' };
+                        
+                        const scheduleRef = db.collection("manager_schedules").doc(weekKey);
+                        await scheduleRef.set({ [scheduleKey]: scheduleData }, { merge: true });
+                    }
+
+                    showToast("Leave plotted successfully!", "success");
+                    document.getElementById('leave-modal').classList.add('hidden');
+                    loadPlottedLeavesForMonth();
+
+                } catch (error) {
+                    console.error("Error plotting leave:", error);
+                    showToast("Failed to plot leave.", "error");
+                }
+            }
+
+            async function loadAndRenderLeaveTracking() {
+                const container = document.getElementById('leave-records-container');
+                if (!container) return;
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">Loading leave records...</p>';
+                try {
+                    const snapshot = await db.collection('leave_records').orderBy('managerName').get();
+                    const records = snapshot.docs.map(doc => doc.data());
+
+                    const leaveSummary = records.reduce((acc, record) => {
+                        if (!acc[record.managerName]) {
+                            acc[record.managerName] = { VL: 0, HL: 0 };
+                        }
+                        acc[record.managerName][record.leaveType]++;
+                        return acc;
+                    }, {});
+
+                    if (Object.keys(leaveSummary).length === 0) {
+                        container.innerHTML = '<p class="text-gray-500 text-center py-4">No leave records found.</p>';
+                        return;
+                    }
+
+                    let content = '';
+                    for (const managerName in leaveSummary) {
+                        const vlCount = leaveSummary[managerName].VL;
+                        const hlCount = leaveSummary[managerName].HL;
+                        const total = vlCount + hlCount;
+                        content += `
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-lg">${managerName}</h4>
+                                <div class="mt-2 grid grid-cols-3 gap-4 text-center">
+                                    <div>
+                                        <p class="text-2xl font-bold text-blue-600">${vlCount}</p>
+                                        <p class="text-sm text-gray-500">Vacation Leaves</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-2xl font-bold text-green-600">${hlCount}</p>
+                                        <p class="text-sm text-gray-500">Holiday Leaves</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-2xl font-bold text-gray-800">${total}</p>
+                                        <p class="text-sm text-gray-500">Total Leaves</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    container.innerHTML = content;
+
+                } catch (error) {
+                    console.error("Error loading leave records:", error);
+                    container.innerHTML = '<p class="text-red-500 text-center py-4">Could not load leave records.</p>';
+                }
+            }
+
 
             // --- NAVIGATION LOGIC ---
             const navButtons = document.querySelectorAll('.nav-button');
@@ -646,7 +1210,8 @@ service cloud.firestore {
 
             function updateView() {
                 document.querySelectorAll('.view').forEach(section => section.classList.add('hidden'));
-                document.getElementById(`${appState.currentView}-section`).classList.remove('hidden');
+                const currentSection = document.getElementById(`${appState.currentView}-section`);
+                if(currentSection) currentSection.classList.remove('hidden');
 
                 navButtons.forEach(btn => {
                     btn.classList.toggle('active', btn.dataset.view === appState.currentView);
@@ -656,18 +1221,23 @@ service cloud.firestore {
                     case 'dashboard': renderDashboard(); break;
                     case 'insights': renderInsights(); break;
                     case 'evaluator': renderEvaluator(); break;
+                    case 'manager-schedule': 
+                        loadManagers();
+                        document.querySelector('.schedule-tab.active')?.click();
+                        break;
                     case 'activities': renderActivities(); break;
                     case 'historical': renderHistorical(); break;
                     case 'admin': renderAdmin(); break;
                 }
             }
             
-            // --- RENDERING FUNCTIONS ---
+            // --- FULL RENDERING FUNCTIONS ---
             function renderDashboard() {
                 if (!appState.forecastData) return;
                 const { dates, sales, customers } = appState.forecastData;
 
-                const ctx = document.getElementById('forecastChart').getContext('2d');
+                const ctx = document.getElementById('forecastChart')?.getContext('2d');
+                if(!ctx) return;
                 if(charts.forecast) charts.forecast.destroy();
 
                 charts.forecast = new Chart(ctx, {
@@ -700,6 +1270,7 @@ service cloud.firestore {
                     return;
                 }
                 const select = document.getElementById('insightDate');
+                if(!select) return;
                 select.innerHTML = '';
                 appState.insightsData.forEach(d => {
                     const option = document.createElement('option');
@@ -723,7 +1294,8 @@ service cloud.firestore {
                 const data = appState.insightsData.find(d => d.date.toISOString().split('T')[0] === dateString);
                 if (!data) return;
 
-                const ctx = document.getElementById('waterfallChart').getContext('2d');
+                const ctx = document.getElementById('waterfallChart')?.getContext('2d');
+                if(!ctx) return;
                 if (charts.waterfall) charts.waterfall.destroy();
 
                 charts.waterfall = new Chart(ctx, {
@@ -753,7 +1325,6 @@ service cloud.firestore {
             }
             
             function renderEvaluator() {
-                // Get elements and clear previous state
                 const salesAccuracyEl = document.getElementById('sales-accuracy');
                 const customerAccuracyEl = document.getElementById('customer-accuracy');
                 const salesChartCtx = document.getElementById('salesEvalChart')?.getContext('2d');
@@ -761,10 +1332,9 @@ service cloud.firestore {
 
                 if (charts.salesEval) charts.salesEval.destroy();
                 if (charts.custEval) charts.custEval.destroy();
-                salesAccuracyEl.textContent = 'N/A';
-                customerAccuracyEl.textContent = 'N/A';
+                if(salesAccuracyEl) salesAccuracyEl.textContent = 'N/A';
+                if(customerAccuracyEl) customerAccuracyEl.textContent = 'N/A';
 
-                // Check if there is any evaluation data at all
                 if (!appState.evaluationData || appState.evaluationData.length === 0) {
                     showToast("No matching historical and forecast data found for evaluation.", "error");
                     return;
@@ -773,13 +1343,11 @@ service cloud.firestore {
                 const days = appState.evalDays;
                 const dataSlice = appState.evaluationData.slice(-days);
                 
-                // Check if there is data for the selected time slice (e.g., last 7 days)
                 if (dataSlice.length === 0) {
                     showToast(`No evaluation data available for the last ${days} days.`, "error");
                     return;
                 }
                 
-                // --- MAPE Calculation with protection against division by zero ---
                 const salesMapeData = dataSlice.filter(d => d.actual_sales > 0);
                 const salesMape = salesMapeData.length > 0 
                     ? (salesMapeData.reduce((sum, val) => sum + Math.abs((val.actual_sales - val.forecast_sales) / val.actual_sales), 0) / salesMapeData.length) * 100
@@ -790,10 +1358,9 @@ service cloud.firestore {
                     ? (custMapeData.reduce((sum, val) => sum + Math.abs((val.actual_customers - val.forecast_customers) / val.actual_customers), 0) / custMapeData.length) * 100
                     : 0;
 
-                salesAccuracyEl.textContent = `${(100 - salesMape).toFixed(2)}%`;
-                customerAccuracyEl.textContent = `${(100 - custMape).toFixed(2)}%`;
+                if(salesAccuracyEl) salesAccuracyEl.textContent = `${(100 - salesMape).toFixed(2)}%`;
+                if(customerAccuracyEl) customerAccuracyEl.textContent = `${(100 - custMape).toFixed(2)}%`;
 
-                // Render charts if the context is available
                 if (salesChartCtx) {
                     charts.salesEval = createEvalChart(salesChartCtx, dataSlice.map(d=>d.date), dataSlice.map(d=>d.actual_sales), dataSlice.map(d=>d.forecast_sales));
                 }
@@ -819,6 +1386,7 @@ service cloud.firestore {
 
             function setupActivityFilters() {
                 const yearSelect = document.getElementById('activity-year');
+                if(!yearSelect) return;
                 if (!appState.activitiesData || appState.activitiesData.length === 0) {
                     yearSelect.innerHTML = `<option>${new Date().getFullYear()}</option>`;
                     return;
@@ -838,7 +1406,7 @@ service cloud.firestore {
                 });
                 
                 yearSelect.addEventListener('change', () => {
-                    renderActivities(); // Re-render when year changes
+                    renderActivities();
                 });
             }
 
@@ -846,6 +1414,8 @@ service cloud.firestore {
                 const tabsContainer = document.getElementById('activity-tabs-container');
                 const contentContainer = document.getElementById('activity-content-container');
                 const yearSelect = document.getElementById('activity-year');
+                if(!tabsContainer || !contentContainer || !yearSelect) return;
+
                 tabsContainer.innerHTML = '';
                 contentContainer.innerHTML = '';
 
@@ -856,7 +1426,6 @@ service cloud.firestore {
                     return;
                 }
                 
-                // Filter activities by the selected year
                 const yearActivities = appState.activitiesData.filter(d => d.date.toDate().getFullYear() === selectedYear);
 
                 if (yearActivities.length === 0) {
@@ -865,8 +1434,8 @@ service cloud.firestore {
                 }
 
                 const activitiesByMonth = yearActivities.reduce((acc, activity) => {
-                    const month = activity.date.toDate().toLocaleString('default', { month: 'long' }); // Year is no longer needed here
-                    const monthKey = `${activity.date.toDate().getMonth()}_${month}`; // Create a sortable key
+                    const month = activity.date.toDate().toLocaleString('default', { month: 'long' });
+                    const monthKey = `${activity.date.toDate().getMonth()}_${month}`;
                     if (!acc[monthKey]) {
                         acc[monthKey] = [];
                     }
@@ -874,7 +1443,6 @@ service cloud.firestore {
                     return acc;
                 }, {});
                 
-                // Sort months chronologically
                 const sortedMonthKeys = Object.keys(activitiesByMonth).sort((a, b) => parseInt(a.split('_')[0]) - parseInt(b.split('_')[0]));
 
                 sortedMonthKeys.forEach((monthKey, index) => {
@@ -921,11 +1489,9 @@ service cloud.firestore {
                     if (e.target.classList.contains('month-tab')) {
                         const currentActive = tabsContainer.querySelector('.active');
                         if (currentActive) {
-                            currentActive.classList.remove('active', 'border-red-500', 'bg-red-500', 'text-white');
-                            currentActive.classList.add('border-transparent');
+                            currentActive.classList.remove('active');
                         }
-                        e.target.classList.add('active', 'border-red-500', 'bg-red-500', 'text-white');
-                        e.target.classList.remove('border-transparent');
+                        e.target.classList.add('active');
                         displayMonth(e.target.dataset.month);
                     }
                 });
@@ -979,6 +1545,7 @@ service cloud.firestore {
 
             function renderHistorical(year, month) {
                 const container = document.getElementById('historical-list');
+                if(!container) return;
                 container.innerHTML = '';
                 if (!appState.historicalData) {
                     container.innerHTML = `<p class="text-gray-500 text-center py-4">No historical data found.</p>`;
@@ -989,13 +1556,8 @@ service cloud.firestore {
                 if (year) {
                     filteredData = filteredData.filter(d => d.date.toDate().getFullYear() === year);
                 }
-                if (month !== null) {
+                if (month !== null && month !== undefined && month !== '') {
                     filteredData = filteredData.filter(d => d.date.toDate().getMonth() === month);
-                }
-
-                if (filteredData.length === 0) {
-                    container.innerHTML = `<p class="text-gray-500 text-center py-4">No records found for the selected period.</p>`;
-                    return;
                 }
 
                  filteredData.forEach(record => {
@@ -1048,6 +1610,7 @@ service cloud.firestore {
             function setupHistoricalFilters() {
                 const yearSelect = document.getElementById('hist-year');
                 const monthSelect = document.getElementById('hist-month');
+                if(!yearSelect || !monthSelect) return;
                 
                 const years = [...new Set(appState.historicalData.map(d => d.date.toDate().getFullYear()))];
                 yearSelect.innerHTML = '<option value="">All Years</option>';
@@ -1071,6 +1634,7 @@ service cloud.firestore {
 
             function renderAdmin() {
                 const container = document.getElementById('user-list');
+                if(!container) return;
                 container.innerHTML = '';
                  if (!appState.usersData || appState.usersData.length === 0) {
                     container.innerHTML = `<p class="text-gray-500 text-center py-4">No users found.</p>`;
@@ -1100,175 +1664,127 @@ service cloud.firestore {
 
             // --- EVENT LISTENERS ---
             function setupAppEventListeners() {
-                document.getElementById('refresh-data-btn')?.addEventListener('click', () => {
-                    loadAppData();
-                });
-                
                 document.querySelectorAll('.eval-toggle-button').forEach(button => {
                     button.addEventListener('click', (e) => {
-                        document.querySelectorAll('.eval-toggle-button').forEach(btn => {
-                            btn.classList.remove('bg-[#DA291C]', 'text-white');
-                            btn.classList.add('text-gray-600');
-                        });
+                        document.querySelectorAll('.eval-toggle-button').forEach(btn => btn.classList.remove('bg-[#DA291C]', 'text-white'));
                         e.target.classList.add('bg-[#DA291C]', 'text-white');
-                        e.target.classList.remove('text-gray-600');
                         appState.evalDays = e.target.id === 'eval-7-day' ? 7 : 30;
                         renderEvaluator();
                     });
                 });
+                
+                // --- MANAGER SCHEDULE LISTENERS ---
+                const managerScheduleTabs = document.getElementById('manager-schedule-tabs');
+                managerScheduleTabs?.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        const tab = e.target.dataset.tab;
+                        
+                        managerScheduleTabs.querySelectorAll('.schedule-tab').forEach(btn => btn.classList.remove('active'));
+                        e.target.classList.add('active');
 
-                document.getElementById('daily-record-form')?.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const form = e.target;
-                    const record = {
-                        date: firebase.firestore.Timestamp.fromDate(new Date(form['record-date'].value + 'T08:00:00')),
-                        sales: parseFloat(form['record-sales'].value),
-                        customers: parseInt(form['record-customers'].value),
-                        add_on_sales: parseFloat(form['record-addons'].value),
-                        weather: form['record-weather'].value
-                    };
-                    try {
-                        await db.collection("historical_data").add(record);
-                        showToast("Daily record saved successfully!");
-                        form.reset();
-                        loadAppData();
-                    } catch (error) {
-                        showToast("Error saving record.", "error");
-                        console.error("Error adding document: ", error);
-                    }
-                });
+                        document.querySelectorAll('.schedule-content').forEach(content => content.classList.add('hidden'));
+                        document.getElementById(`${tab}-content`)?.classList.remove('hidden');
 
-                document.getElementById('activity-form')?.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const form = e.target;
-                    const activity = {
-                        activity_name: form['activity-name'].value,
-                        customer_name: form['customer-name'].value,
-                        remarks: form['activity-status'].value,
-                        date: firebase.firestore.Timestamp.fromDate(new Date(form['activity-date'].value + 'T08:00:00')),
-                        potential_sales: parseFloat(form['activity-sales'].value)
-                    };
-                    try {
-                        await db.collection("future_activities").add(activity);
-                        showToast("Activity saved successfully!");
-                        form.reset();
-                        loadAppData();
-                    } catch (error) {
-                        showToast("Error saving activity.", "error");
-                        console.error("Error adding document: ", error);
-                    }
-                });
-
-                document.getElementById('event-form')?.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const form = e.target;
-                    const eventData = {
-                        event_name: form['event-name'].value,
-                        date: firebase.firestore.Timestamp.fromDate(new Date(form['event-date'].value + 'T08:00:00')),
-                    };
-                    try {
-                        await db.collection("future_events").add(eventData);
-                        showToast("Event saved successfully!");
-                        form.reset();
-                        loadAppData();
-                    } catch (error) {
-                        showToast("Error saving event.", "error");
-                        console.error("Error adding document: ", error);
-                    }
-                });
-
-                document.getElementById('content-area')?.addEventListener('click', async (e) => {
-                    const id = e.target.dataset.id;
-                    if (!id) return;
-
-                    // Activity Card Actions
-                    if (e.target.classList.contains('delete-activity-btn')) {
-                        if (confirm('Are you sure you want to delete this activity?')) {
-                            try {
-                                await db.collection('future_activities').doc(id).delete();
-                                showToast('Activity deleted.');
-                                loadAppData();
-                            } catch (error) { showToast('Error deleting activity.', 'error'); }
-                        }
-                    } else if (e.target.classList.contains('edit-activity-btn')) {
-                        document.getElementById(`view-${id}`).classList.add('hidden');
-                        document.getElementById(`edit-form-${id}`).classList.remove('hidden');
-                    } else if (e.target.classList.contains('cancel-edit-btn')) {
-                        document.getElementById(`view-${id}`).classList.remove('hidden');
-                        document.getElementById(`edit-form-${id}`).classList.add('hidden');
-                    } else if (e.target.classList.contains('update-activity-btn')) {
-                        e.preventDefault();
-                        const form = document.getElementById(`edit-form-${id}`);
-                        const updatedData = {
-                            activity_name: form.children[0].value,
-                            customer_name: form.children[1].value,
-                            date: firebase.firestore.Timestamp.fromDate(new Date(form.children[2].value + 'T08:00:00')),
-                            potential_sales: parseFloat(form.children[3].value),
-                            remarks: form.children[4].value,
-                        };
-                        try {
-                            await db.collection('future_activities').doc(id).update(updatedData);
-                            showToast('Activity updated.');
-                            loadAppData();
-                        } catch (error) { showToast('Error updating activity.', 'error'); }
-                    }
-
-                    // Historical Card Actions
-                    if (e.target.classList.contains('delete-historical-btn')) {
-                        if (confirm('Are you sure you want to delete this historical record?')) {
-                            try {
-                                await db.collection('historical_data').doc(id).delete();
-                                showToast('Record deleted.');
-                                loadAppData();
-                            } catch (error) { showToast('Error deleting record.', 'error'); }
-                        }
-                    } else if (e.target.classList.contains('edit-historical-btn')) {
-                        document.getElementById(`view-hist-${id}`).classList.add('hidden');
-                        document.getElementById(`edit-form-hist-${id}`).classList.remove('hidden');
-                    } else if (e.target.classList.contains('cancel-edit-hist-btn')) {
-                        document.getElementById(`view-hist-${id}`).classList.remove('hidden');
-                        document.getElementById(`edit-form-hist-${id}`).classList.add('hidden');
-                    } else if (e.targe.classList.contains('update-historical-btn')) {
-                        e.preventDefault();
-                        const form = document.getElementById(`edit-form-hist-${id}`);
-                        const inputs = form.querySelector('.grid').children;
-                        const updatedData = {
-                            sales: parseFloat(inputs[0].value),
-                            customers: parseInt(inputs[1].value),
-                            add_on_sales: parseFloat(inputs[2].value),
-                            weather: inputs[3].value,
-                        };
-                        try {
-                            await db.collection('historical_data').doc(id).update(updatedData);
-                            showToast('Record updated.');
-                            loadAppData();
-                        } catch (error) { showToast('Error updating record.', 'error'); }
-                    }
-
-                    // User Admin Actions
-                    if (e.target.classList.contains('delete-user-btn')) {
-                        if (confirm('Are you sure you want to delete this user?')) {
-                            try {
-                                await db.collection('users').doc(id).delete();
-                                showToast('User deleted.');
-                                loadAppData();
-                            } catch (error) { showToast('Error deleting user.', 'error'); }
+                        if (tab === 'weekly-schedule') {
+                            const weekPicker = document.getElementById('week-picker');
+                            const weekDates = getWeekDateStrings(new Date(weekPicker.value + 'T00:00:00'));
+                            loadScheduleForWeek(weekDates);
+                        } else if (tab === 'leave-schedule') {
+                            loadPlottedLeavesForMonth();
+                        } else if (tab === 'leave-tracking') {
+                            loadAndRenderLeaveTracking();
+                        } else if (tab === 'manage-managers') {
+                            loadManagers();
                         }
                     }
                 });
 
-                document.getElementById('content-area')?.addEventListener('change', async (e) => {
-                    if (e.target.classList.contains('user-access-level-select')) {
-                        const id = e.target.dataset.id;
-                        const newLevel = parseInt(e.target.value);
+                document.getElementById('add-manager-form')?.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const nameInput = document.getElementById('manager-name');
+                    const name = nameInput.value.trim();
+                    if (name) {
                         try {
-                            await db.collection('users').doc(id).update({ access_level: newLevel });
-                            showToast('User access level updated.');
+                            await db.collection("managers").add({ name: name });
+                            showToast("Manager added successfully!");
+                            nameInput.value = '';
+                            loadManagers();
                         } catch (error) {
-                            showToast('Error updating access level.', 'error');
+                            showToast("Error adding manager.", "error");
                         }
                     }
                 });
+
+                document.getElementById('manage-managers-content')?.addEventListener('click', async (e) => {
+                    if (e.target.classList.contains('delete-manager-btn')) {
+                        const managerId = e.target.dataset.id;
+                        if (confirm('Are you sure you want to delete this manager? This action cannot be undone.')) {
+                            try {
+                                await db.collection("managers").doc(managerId).delete();
+                                showToast("Manager deleted.");
+                                loadManagers();
+                            } catch (error) {
+                                showToast("Error deleting manager.", "error");
+                            }
+                        }
+                    }
+                });
+
+                const weekPicker = document.getElementById('week-picker');
+                weekPicker?.addEventListener('change', () => {
+                    const selectedDate = new Date(weekPicker.value + 'T00:00:00');
+                    const weekDates = getWeekDateStrings(selectedDate);
+                    loadScheduleForWeek(weekDates);
+                });
+                
+                const scheduleTable = document.getElementById('weekly-schedule-table');
+                scheduleTable?.addEventListener('click', (e) => {
+                    const cell = e.target.closest('.schedule-cell');
+                    if (cell && cell.dataset.managerId) {
+                        openScheduleModal(cell.dataset.managerId, cell.dataset.date);
+                    }
+                });
+
+                // Modal Listeners
+                document.getElementById('modal-cancel-btn')?.addEventListener('click', () => {
+                    document.getElementById('schedule-modal').classList.add('hidden');
+                });
+                document.getElementById('modal-save-btn')?.addEventListener('click', saveScheduleFromModal);
+                document.getElementById('modal-delete-btn')?.addEventListener('click', clearScheduleFromModal);
+
+                document.getElementById('modal-shift-select')?.addEventListener('change', (e) => {
+                    const timeContainer = document.getElementById('modal-time-container');
+                    if (['VL', 'HL', 'OFF', ''].includes(e.target.value)) {
+                        timeContainer.style.display = 'none';
+                    } else {
+                        timeContainer.style.display = 'block';
+                    }
+                });
+
+
+                // --- LEAVE CALENDAR LISTENERS ---
+                document.getElementById('prev-month-btn')?.addEventListener('click', () => {
+                    appState.calendarDate.setMonth(appState.calendarDate.getMonth() - 1);
+                    loadPlottedLeavesForMonth();
+                });
+                document.getElementById('next-month-btn')?.addEventListener('click', () => {
+                    appState.calendarDate.setMonth(appState.calendarDate.getMonth() + 1);
+                    loadPlottedLeavesForMonth();
+                });
+                document.getElementById('add-leave-btn')?.addEventListener('click', () => openLeaveModal());
+                
+                document.getElementById('leave-calendar-container')?.addEventListener('click', (e) => {
+                    const dayCell = e.target.closest('.calendar-day');
+                    if (dayCell && dayCell.dataset.date) {
+                        openLeaveModal(dayCell.dataset.date);
+                    }
+                });
+
+                // Leave Modal Listeners
+                document.getElementById('leave-cancel-btn')?.addEventListener('click', () => {
+                    document.getElementById('leave-modal').classList.add('hidden');
+                });
+                document.getElementById('leave-save-btn')?.addEventListener('click', saveLeaveFromModal);
             }
             
             // --- AUTHENTICATION FLOW ---
@@ -1279,7 +1795,7 @@ service cloud.firestore {
             const loginError = document.getElementById('login-error');
             const logoutBtn = document.getElementById('logout-btn');
 
-            loginForm.addEventListener('submit', (e) => {
+            loginForm?.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const email = loginForm.email.value;
                 const password = loginForm.password.value;
@@ -1288,51 +1804,42 @@ service cloud.firestore {
                 auth.signInWithEmailAndPassword(email, password)
                     .catch(error => {
                         console.error("Login Error:", error);
-                        if (error.code === 'auth/operation-not-allowed') {
-                             loginError.innerHTML = `
-                                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative text-left" role="alert">
-                                    <strong class="font-bold">Configuration Error!</strong>
-                                    <span class="block sm:inline">Email/Password sign-in is disabled.</span>
-                                    <p class="text-xs mt-2"><strong>Action Required:</strong> Go to your Firebase Console -> Authentication -> Sign-in method, and enable the Email/Password provider.</p>
-                                </div>
-                            `;
-                        } else {
-                            loginError.textContent = "Invalid username or password.";
-                        }
+                        loginError.textContent = "Invalid username or password.";
                     });
             });
             
-            logoutBtn.addEventListener('click', () => {
+            logoutBtn?.addEventListener('click', () => {
                 auth.signOut();
             });
 
             auth.onAuthStateChanged(async user => {
                 if (user) {
-                    // User is signed in.
                     loginScreen.style.display = 'none';
                     appContainer.style.display = 'flex';
                     loadingOverlay.style.display = 'flex';
-
-                    // --- MODIFICATION: Firestore permission check is bypassed ---
-                    // The following database check has been removed to allow any authenticated user to log in.
-                    // All logged-in users will be granted full administrative access by default.
-                    appState.accessLevel = 1; // Grant admin access to any logged-in user
-                    // --- END MODIFICATION ---
                     
                     document.getElementById('user-greeting').textContent = `Welcome, ${user.email.split('@')[0]}`;
+                    
+                    document.querySelector('button[data-view="admin"]')?.classList.remove('hidden');
+                    document.querySelector('#mobile-nav button[data-view="admin"]')?.classList.remove('hidden');
 
-                    if (appState.accessLevel === 1) {
-                        document.querySelector('button[data-view="admin"]').classList.remove('hidden');
-                        document.querySelector('#mobile-nav button[data-view="admin"]').classList.remove('hidden');
-                    }
-
-                    await loadAppData();
+                    await loadAppData(); 
                     setupAppEventListeners();
-                    if(appState.historicalData) setupHistoricalFilters();
-                    if(appState.activitiesData) setupActivityFilters();
+                    if(appState.historicalData) {
+                        setupHistoricalFilters();
+                        setupActivityFilters();
+                    }
+                    
+                    const weekPicker = document.getElementById('week-picker');
+                    if(weekPicker) weekPicker.value = getLocalDateString(new Date());
+
+                    // Load initial data for schedule tabs
+                    const initialWeekDates = getWeekDateStrings(new Date());
+                    loadScheduleForWeek(initialWeekDates);
+                    loadPlottedLeavesForMonth();
+
 
                 } else {
-                    // User is signed out.
                     loginScreen.style.display = 'flex';
                     appContainer.style.display = 'none';
                     loadingOverlay.style.display = 'none';
