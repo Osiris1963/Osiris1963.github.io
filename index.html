@@ -1347,16 +1347,26 @@
                 if (!container) return;
                 container.innerHTML = '<p class="text-gray-500 text-center py-4">Loading leave records...</p>';
                 try {
-                    const snapshot = await db.collection('leave_records').orderBy('managerName').get();
-                    const records = snapshot.docs.map(doc => doc.data());
+                    const snapshot = await db.collection('plotted_leaves').get();
+                    const leaves = snapshot.docs.map(doc => doc.data());
 
-                    const leaveSummary = records.reduce((acc, record) => {
-                        if (!acc[record.managerName]) {
-                            acc[record.managerName] = { VL: 0, HL: 0, SL: 0 };
+                    const leaveSummary = {};
+
+                    appState.managers.forEach(manager => {
+                        leaveSummary[manager.name] = { VL: 0, HL: 0, SL: 0 };
+                    });
+
+                    leaves.forEach(leave => {
+                        if (leaveSummary[leave.managerName]) {
+                            const start = createUTCDate(leave.startDate);
+                            const end = createUTCDate(leave.endDate);
+                            let count = 0;
+                            for (let d = start; d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+                                count++;
+                            }
+                            leaveSummary[leave.managerName][leave.leaveType] += count;
                         }
-                        acc[record.managerName][record.leaveType]++;
-                        return acc;
-                    }, {});
+                    });
 
                     if (Object.keys(leaveSummary).length === 0) {
                         container.innerHTML = '<p class="text-gray-500 text-center py-4">No leave records found.</p>';
@@ -1659,7 +1669,6 @@
                     loadScheduleForWeek(weekDates);
                 });
 
-                // *** PRECISE FIX: Add event listener for shift change in modal ***
                 document.getElementById('modal-shift-select')?.addEventListener('change', (e) => {
                     const timeContainer = document.getElementById('modal-time-container');
                     if (['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(e.target.value)) {
@@ -1921,6 +1930,7 @@
                 const scheduleData = appState.managerSchedules[`${managerId}_${date}`] || { shift: '', time: '' };
                 shiftSelect.value = scheduleData.shift;
                 timeInput.value = scheduleData.time;
+                
                 timeContainer.style.display = ['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(scheduleData.shift) ? 'none' : 'block';
                 
                 modal.classList.remove('hidden');
