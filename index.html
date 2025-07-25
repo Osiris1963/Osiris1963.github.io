@@ -756,7 +756,6 @@
                         db.collection("users").get(),
                         db.collection("forecast_log").where("forecast_for_date", ">=", thirtyFiveDaysAgo).get(),
                         db.collection("historical_data").where("date", ">=", thirtyFiveDaysAgo).orderBy("date", "desc").get(),
-                        // *** PRECISE FIX: Sort managers by sortOrder field ***
                         db.collection("managers").orderBy("sortOrder").get(),
                         db.collection("plotted_leaves").get()
                     ]);
@@ -893,6 +892,8 @@
                 // Reset all restrictions first
                 document.querySelectorAll('.nav-button').forEach(btn => btn.style.display = 'inline-flex');
                 document.querySelectorAll('section.view').forEach(sec => sec.classList.remove('view-only-hard'));
+                document.querySelectorAll('.view-only-level2').forEach(el => el.classList.remove('view-only-hard'));
+
 
                 const level = appState.accessLevel;
 
@@ -900,7 +901,11 @@
                     // No restrictions
                 } else if (level === 2) { // Manager
                     document.querySelectorAll('button[data-view="admin"]').forEach(btn => btn.style.display = 'none');
-                    document.getElementById('manager-schedule-section')?.classList.add('view-only-hard');
+                    // *** PRECISE FIX: Target only the editing elements within the manager schedule ***
+                    document.querySelectorAll('#add-manager-form, #manage-managers-content .delete-manager-btn, #add-leave-btn').forEach(el => {
+                        el.classList.add('view-only-hard');
+                    });
+
                 } else if (level === 3) { // Viewer/Staff
                     // Hide all tabs except Activities
                     document.querySelectorAll('.nav-button').forEach(btn => {
@@ -1580,7 +1585,7 @@
                 document.getElementById('add-manager-form')?.addEventListener('submit', handleAddManager);
 
                 document.getElementById('content-area')?.addEventListener('click', handleContentAreaClicks);
-                document.getElementById('admin-section')?.addEventListener('change', handleAdminClicks); // *** FIX: Listen for CHANGE on admin section ***
+                document.getElementById('admin-section')?.addEventListener('change', handleAdminClicks);
                 document.getElementById('schedule-modal')?.addEventListener('click', handleScheduleModalClicks);
                 document.getElementById('leave-modal')?.addEventListener('click', handleLeaveModalClicks);
                 
@@ -1613,7 +1618,7 @@
                 if(target.closest('#historical-list')) handleHistoricalListClicks(e);
                 if(target.closest('#activity-content-container')) handleActivityListClicks(e);
                 if(target.closest('#manager-schedule-section')) handleManagerScheduleClicks(e);
-                if(target.closest('#admin-section') && e.type === 'click') handleAdminClicks(e); // Handle clicks separately
+                if(target.closest('#admin-section') && e.type === 'click') handleAdminClicks(e);
             }
 
             async function handleDailyRecordSave(e) {
@@ -1767,6 +1772,7 @@
                     renderManagerSchedule();
                 }
                  else if (target.classList.contains('delete-manager-btn')) {
+                    if (appState.accessLevel > 1) return; // *** PRECISE FIX: Prevent action for level 2 ***
                     const managerId = target.dataset.id;
                     if (confirm('Are you sure?')) {
                         db.collection("managers").doc(managerId).delete()
@@ -1775,11 +1781,13 @@
                     }
                 }
                  else if (target.closest('.schedule-cell')) {
+                    if (appState.accessLevel > 1) return; // *** PRECISE FIX: Prevent action for level 2 ***
                     const cell = target.closest('.schedule-cell');
                     if (cell.dataset.managerId) {
                         openScheduleModal(cell.dataset.managerId, cell.dataset.date);
                     }
                 } else if(target.id === 'add-leave-btn') {
+                    if (appState.accessLevel > 1) return; // *** PRECISE FIX: Prevent action for level 2 ***
                     openLeaveModal();
                 } else if(target.id === 'prev-month-btn') {
                     appState.calendarDate.setMonth(appState.calendarDate.getMonth() - 1);
@@ -1788,6 +1796,7 @@
                     appState.calendarDate.setMonth(appState.calendarDate.getMonth() + 1);
                     loadPlottedLeavesForMonth();
                 } else if (target.classList.contains('leave-entry')) {
+                    if (appState.accessLevel > 1) return; // *** PRECISE FIX: Prevent action for level 2 ***
                     const leaveId = target.dataset.leaveId;
                     if (leaveId) {
                         openLeaveModal(null, leaveId);
