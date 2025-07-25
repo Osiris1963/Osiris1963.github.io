@@ -11,6 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Using Firebase v8 as in the original file to maintain compatibility -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -60,7 +61,6 @@
         }
         .toast.success { background-color: #10B981; }
         .toast.error { background-color: #EF4444; }
-        /* Custom scrollbar for webkit browsers */
         .custom-scrollbar::-webkit-scrollbar {
             width: 8px;
         }
@@ -80,7 +80,7 @@
             color: white;
         }
         .schedule-tab {
-            color: #4b5563; /* Darker gray for inactive tabs */
+            color: #4b5563;
             padding: 0.75rem 1rem;
             border-bottom: 3px solid transparent;
             transition: all 0.2s ease-in-out;
@@ -90,7 +90,7 @@
             border-bottom: 3px solid #d1d5db;
         }
         .schedule-tab.active {
-            background-color: #4A5568; /* Dark Slate Gray from image */
+            background-color: #4A5568;
             color: white;
             font-weight: 600;
             border-color: transparent;
@@ -138,7 +138,6 @@
             border-color: #DA291C;
             box-shadow: 0 0 0 2px rgba(218, 41, 28, 0.2);
         }
-        /* Calendar Styles */
         .calendar {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -182,9 +181,12 @@
         .leave-vl { background-color: #3b82f6; }
         .leave-hl { background-color: #10b981; }
         .leave-sl { background-color: #f59e0b; }
-        .view-only {
-            pointer-events: none;
-            opacity: 0.7;
+        .view-only-hard {
+            pointer-events: none !important;
+            opacity: 0.6 !important;
+        }
+        .view-only-hard button, .view-only-hard input, .view-only-hard select {
+            cursor: not-allowed !important;
         }
     </style>
 </head>
@@ -639,13 +641,13 @@
             </div>
             <div class="mt-6 space-y-2">
                 <button id="leave-save-btn" class="w-full px-4 py-2 bg-green-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-green-700">Save Leave</button>
-                <button id="leave-delete-btn" class="w-full px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700">Delete Leave</button>
+                <button id="leave-delete-btn" class="w-full px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 hidden">Delete Leave</button>
                 <button id="leave-cancel-btn" class="w-full px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-300">Cancel</button>
             </div>
         </div>
     </div>
 
-
+    <!-- ****** FULLY IMPLEMENTED SCRIPT WITH EVALUATOR FIX ****** -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             
@@ -682,38 +684,46 @@
                 accessLevel: 3, // Default to viewer
             };
             
-            // --- TOAST NOTIFICATION ---
+            // --- UI ELEMENT SELECTORS ---
+            const UI = {
+                loadingOverlay: document.getElementById('loading-overlay'),
+                loadingText: document.getElementById('loading-text'),
+                loginScreen: document.getElementById('login-screen'),
+                appContainer: document.getElementById('app-container'),
+                loginForm: document.getElementById('login-form'),
+                loginError: document.getElementById('login-error'),
+                logoutBtn: document.getElementById('logout-btn'),
+                userGreeting: document.getElementById('user-greeting'),
+                navButtons: document.querySelectorAll('.nav-button'),
+            };
+
+            // --- UTILITY FUNCTIONS ---
             function showToast(message, type = 'success') {
-                const toastContainer = document.getElementById('toast-container');
+                const container = document.getElementById('toast-container');
                 const toast = document.createElement('div');
                 toast.textContent = message;
                 toast.className = `toast ${type}`;
-                toastContainer.appendChild(toast);
-                
-                setTimeout(() => {
-                    toast.classList.add('show');
-                }, 100);
-
+                container.appendChild(toast);
+                setTimeout(() => toast.classList.add('show'), 100);
                 setTimeout(() => {
                     toast.classList.remove('show');
                     setTimeout(() => toast.remove(), 500);
                 }, 3000);
             }
 
-            // --- DATE HELPER FUNCTIONS ---
             function getLocalDateString(date) {
-                const year = date.getFullYear();
-                const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                const day = date.getDate().toString().padStart(2, '0');
+                const d = new Date(date);
+                const year = d.getFullYear();
+                const month = (d.getMonth() + 1).toString().padStart(2, '0');
+                const day = d.getDate().toString().padStart(2, '0');
                 return `${year}-${month}-${day}`;
             }
-
+            
             function getWeekDateStrings(date) {
                 const startOfWeek = new Date(date);
                 const dayOfWeek = startOfWeek.getDay();
-                const diff = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust for Sunday
+                const diff = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
                 startOfWeek.setDate(diff);
-
                 return Array.from({ length: 7 }).map((_, i) => {
                     const weekDay = new Date(startOfWeek);
                     weekDay.setDate(startOfWeek.getDate() + i);
@@ -721,10 +731,10 @@
                 });
             }
 
-            // --- DATA FETCHING & PROCESSING ---
-            async function loadAppData() {
-                document.getElementById('loading-overlay').style.display = 'flex';
-                document.getElementById('loading-text').textContent = 'Loading All Application Data...';
+            // --- DATA LOADING ---
+            async function loadInitialData() {
+                UI.loadingOverlay.style.display = 'flex';
+                UI.loadingText.textContent = 'Loading All Application Data...';
                 
                 try {
                     const thirtyFiveDaysAgo = new Date();
@@ -736,103 +746,67 @@
                         activitiesSnapshot,
                         usersSnapshot,
                         evalLogSnapshot,
-                        evalHistoricalSnapshot
+                        evalHistoricalSnapshot,
+                        managersSnapshot,
+                        leavesSnapshot
                     ] = await Promise.all([
                         db.collection("forecast_log").orderBy("generated_on", "desc").limit(15).get(),
                         db.collection("historical_data").orderBy("date", "desc").get(),
                         db.collection("future_activities").orderBy("date", "asc").get(),
                         db.collection("users").get(),
                         db.collection("forecast_log").where("forecast_for_date", ">=", thirtyFiveDaysAgo).get(),
-                        db.collection("historical_data").where("date", ">=", thirtyFiveDaysAgo).orderBy("date", "desc").get()
+                        db.collection("historical_data").where("date", ">=", thirtyFiveDaysAgo).orderBy("date", "desc").get(),
+                        db.collection("managers").orderBy("name").get(),
+                        db.collection("plotted_leaves").get()
                     ]);
 
                     appState.historicalData = allHistoricalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     appState.activitiesData = activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     appState.usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    appState.managers = managersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    appState.plottedLeaves = leavesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     
-                    const provisionalBanner = document.getElementById('provisional-forecast-banner');
-                    if (dashboardLogSnapshot.empty) {
-                        provisionalBanner?.classList.remove('hidden');
-                        generateProvisionalForecast();
-                    } else {
-                        provisionalBanner?.classList.add('hidden');
-                        const forecastDocs = dashboardLogSnapshot.docs.map(doc => doc.data()).reverse();
-                        appState.forecastData = {
-                            dates: forecastDocs.map(d => d.forecast_for_date.toDate()),
-                            sales: forecastDocs.map(d => d.predicted_sales),
-                            customers: forecastDocs.map(d => d.predicted_customers),
-                        };
-                    }
-                    
-                    const recentHistoryForInsight = appState.historicalData.slice(0, 30).map(h => h.customers).reverse();
-                    const trendMovingAverage = recentHistoryForInsight.length > 0 ? recentHistoryForInsight.slice(-7).reduce((a, b) => a + b, 0) / 7 : 250;
-                    
-                    if(appState.forecastData && appState.forecastData.dates.length > 0) {
-                        appState.insightsData = appState.forecastData.dates.map((date, i) => {
-                            const forecastCustomers = appState.forecastData.customers[i];
-                            const effect = forecastCustomers - trendMovingAverage;
-                            return {
-                                date: date,
-                                trend: trendMovingAverage,
-                                seasonal_effect: effect,
-                                total: forecastCustomers
-                            };
-                        });
-                    }
-
-                    const latestForecastsForEval = new Map();
-                    evalLogSnapshot.docs.forEach(doc => {
-                        const log = doc.data();
-                        const logDateStr = getLocalDateString(log.forecast_for_date.toDate());
-                        const existing = latestForecastsForEval.get(logDateStr);
-                        if (!existing || log.generated_on.toMillis() > existing.generated_on.toMillis()) {
-                            latestForecastsForEval.set(logDateStr, log);
-                        }
-                    });
-
-                    const actualsForEval = new Map();
-                    evalHistoricalSnapshot.docs.forEach(doc => {
-                        const actual = doc.data();
-                        const actualDateStr = getLocalDateString(actual.date.toDate());
-                        if (!actualsForEval.has(actualDateStr)) {
-                            actualsForEval.set(actualDateStr, { id: doc.id, ...actual });
-                        }
-                    });
-
-                    const mergedEvalData = [];
-                    actualsForEval.forEach((actual, actualDateStr) => {
-                        if (latestForecastsForEval.has(actualDateStr)) {
-                            const forecast = latestForecastsForEval.get(actualDateStr);
-                            mergedEvalData.push({
-                                date: actual.date.toDate(),
-                                actual_sales: Number(actual.sales),
-                                forecast_sales: Number(forecast.predicted_sales) + Number(actual.add_on_sales || 0),
-                                actual_customers: Number(actual.customers),
-                                forecast_customers: Number(forecast.predicted_customers),
-                            });
-                        }
-                    });
-                    
-                    appState.evaluationData = mergedEvalData.sort((a,b) => a.date - b.date);
+                    processForecastData(dashboardLogSnapshot);
+                    processEvaluationData(evalLogSnapshot, evalHistoricalSnapshot);
                     
                     updateView();
+                    setupDynamicContent();
 
                 } catch (error) {
                     console.error("Firebase Error:", error);
                     showToast("Error loading application data. Some features may not work.", "error");
                 } finally {
-                    const loadingOverlay = document.getElementById('loading-overlay');
-                    if (loadingOverlay) {
-                       loadingOverlay.style.display = 'none';
-                    }
+                    UI.loadingOverlay.style.display = 'none';
+                }
+            }
+
+            function processForecastData(snapshot) {
+                const provisionalBanner = document.getElementById('provisional-forecast-banner');
+                if (snapshot.empty) {
+                    provisionalBanner?.classList.remove('hidden');
+                    generateProvisionalForecast();
+                } else {
+                    provisionalBanner?.classList.add('hidden');
+                    const forecastDocs = snapshot.docs.map(doc => doc.data()).reverse();
+                    appState.forecastData = {
+                        dates: forecastDocs.map(d => d.forecast_for_date.toDate()),
+                        sales: forecastDocs.map(d => d.predicted_sales),
+                        customers: forecastDocs.map(d => d.predicted_customers),
+                    };
+                }
+
+                if (appState.forecastData && appState.forecastData.dates.length > 0) {
+                    const recentHistoryForInsight = appState.historicalData.slice(0, 30).map(h => h.customers).reverse();
+                    const trendMovingAverage = recentHistoryForInsight.length > 0 ? recentHistoryForInsight.slice(-7).reduce((a, b) => a + b, 0) / 7 : 250;
+                    appState.insightsData = appState.forecastData.dates.map((date, i) => {
+                        const forecastCustomers = appState.forecastData.customers[i];
+                        return { date, trend: trendMovingAverage, seasonal_effect: forecastCustomers - trendMovingAverage, total: forecastCustomers };
+                    });
                 }
             }
             
             function generateProvisionalForecast() {
-                if (!appState.historicalData || appState.historicalData.length < 7) {
-                    showToast("Not enough historical data for a provisional forecast.", "error");
-                    return;
-                }
+                if (!appState.historicalData || appState.historicalData.length < 7) return;
                 const dates = Array.from({length: 15}, (_, i) => {
                     const d = new Date();
                     d.setDate(d.getDate() + i + 1);
@@ -849,501 +823,93 @@
                     sales: Array(15).fill(avgCustomers * avgATV)
                 };
             }
-            
-            // --- MANAGER SCHEDULE FUNCTIONS ---
-            async function loadManagers() {
-                try {
-                    const snapshot = await db.collection("managers").orderBy("sortOrder").get();
-                    appState.managers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderManagerList();
-                    const activeTab = document.querySelector('.schedule-tab.active')?.dataset.tab;
-                    if (activeTab === 'weekly-schedule') {
-                        renderWeeklySchedule();
-                    } else if (activeTab === 'leave-schedule') {
-                        renderLeaveCalendar();
+
+            function processEvaluationData(evalLogSnapshot, evalHistoricalSnapshot) {
+                const latestForecastsForEval = new Map();
+                evalLogSnapshot.docs.forEach(doc => {
+                    const log = doc.data();
+                    const logDateStr = getLocalDateString(log.forecast_for_date.toDate());
+                    const existing = latestForecastsForEval.get(logDateStr);
+                    if (!existing || log.generated_on.toMillis() > existing.generated_on.toMillis()) {
+                        latestForecastsForEval.set(logDateStr, log);
                     }
-                } catch (error) {
-                    console.error("Error loading managers:", error);
-                    showToast("Could not load managers.", "error");
-                }
-            }
-
-            async function loadScheduleForWeek(week) {
-                const weekKey = week[0];
-                try {
-                    const doc = await db.collection("manager_schedules").doc(weekKey).get();
-                    appState.managerSchedules = doc.exists ? doc.data() : {};
-                } catch (error) {
-                    console.error("Error loading schedule:", error);
-                    showToast("Could not load schedule data.", "error");
-                }
-                renderWeeklySchedule();
-                renderShiftSchedule();
-            }
-
-            function renderManagerList() {
-                const container = document.getElementById('manager-list-container');
-                if (!container) return;
-                container.innerHTML = '';
-                if (appState.managers.length === 0) {
-                    container.innerHTML = '<p class="text-gray-500">No managers added yet.</p>';
-                    return;
-                }
-                appState.managers.forEach(manager => {
-                    const div = document.createElement('div');
-                    div.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg';
-                    div.innerHTML = `
-                        <p class="font-medium">${manager.name}</p>
-                        <button data-id="${manager.id}" class="delete-manager-btn text-red-500 hover:text-red-700 font-semibold">Delete</button>
-                    `;
-                    container.appendChild(div);
                 });
-            }
 
-            function renderWeeklySchedule() {
-                const table = document.getElementById('weekly-schedule-table');
-                const mobileContainer = document.getElementById('weekly-schedule-mobile');
-                if (!table || !mobileContainer) return;
-
-                const weekPicker = document.getElementById('week-picker');
-                const selectedDate = new Date(weekPicker.value + 'T00:00:00');
-                const weekDates = getWeekDateStrings(selectedDate);
-
-                // --- DESKTOP TABLE RENDER ---
-                let thead = '<thead><tr><th class="w-48">Manager</th>';
-                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                weekDates.forEach((date, i) => {
-                    const datePart = date.split('-')[2];
-                    thead += `<th>${days[i]}<br><span class="font-normal text-sm">${datePart}</span></th>`;
+                const actualsForEval = new Map();
+                evalHistoricalSnapshot.docs.forEach(doc => {
+                    const actual = doc.data();
+                    actualsForEval.set(getLocalDateString(actual.date.toDate()), { id: doc.id, ...actual });
                 });
-                thead += '</tr></thead>';
 
-                let tbody = '<tbody>';
-                if (appState.managers.length === 0) {
-                    tbody += '<tr><td colspan="8" class="text-center text-gray-500 py-4">Please add managers first.</td></tr>';
-                } else {
-                    appState.managers.forEach(manager => {
-                        tbody += `<tr><td class="font-semibold px-2 text-left">${manager.name}</td>`;
-                        weekDates.forEach(date => {
-                            const scheduleKey = `${manager.id}_${date}`;
-                            const scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
-                            let offClass = scheduleData.shift === 'OFF' ? 'text-red-500' : '';
-                            let cellContent = scheduleData.shift ? `<div class="text-sm"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-gray-500 text-xs">${scheduleData.time || ''}</p></div>` : '<span class="text-2xl font-light text-gray-400">+</span>';
-                            tbody += `<td class="p-1"><div class="schedule-cell" data-manager-id="${manager.id}" data-date="${date}">${cellContent}</div></td>`;
+                const mergedEvalData = [];
+                actualsForEval.forEach((actual, actualDateStr) => {
+                    if (latestForecastsForEval.has(actualDateStr)) {
+                        const forecast = latestForecastsForEval.get(actualDateStr);
+                        mergedEvalData.push({
+                            date: actual.date.toDate(),
+                            actual_sales: Number(actual.sales),
+                            // *** PRECISE FIX: Implementing the exact logic as requested by the user. ***
+                            forecast_sales: Number(forecast.predicted_sales) + Number(actual.add_on_sales || 0), 
+                            actual_customers: Number(actual.customers),
+                            forecast_customers: Number(forecast.predicted_customers),
                         });
-                        tbody += '</tr>';
-                    });
-                }
-                tbody += '</tbody>';
-                table.innerHTML = thead + tbody;
-
-                // --- MOBILE LIST RENDER ---
-                let mobileHTML = '';
-                if (appState.managers.length === 0) {
-                    mobileHTML = '<p class="text-center text-gray-500 py-4">Please add managers first.</p>';
-                } else {
-                    weekDates.forEach((date, i) => {
-                        const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-                        mobileHTML += `<div class="bg-white rounded-lg shadow p-4">
-                                        <h4 class="font-bold text-lg mb-2 border-b pb-2">${days[i]} - ${formattedDate}</h4>
-                                        <div class="space-y-2">`;
-                        appState.managers.forEach(manager => {
-                            const scheduleKey = `${manager.id}_${date}`;
-                            const scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
-                            let offClass = scheduleData.shift === 'OFF' ? 'text-red-500' : '';
-                            let shiftContent = scheduleData.shift ? `<div class="text-right"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-gray-500 text-xs">${scheduleData.time || ''}</p></div>` : '<span class="text-xl font-light text-gray-400">+</span>';
-                            mobileHTML += `<div class="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 schedule-cell" data-manager-id="${manager.id}" data-date="${date}">
-                                            <p class="font-medium">${manager.name}</p>
-                                            ${shiftContent}
-                                         </div>`;
-                        });
-                        mobileHTML += `</div></div>`;
-                    });
-                }
-                mobileContainer.innerHTML = mobileHTML;
-            }
-            
-            function renderShiftSchedule() {
-                const table = document.getElementById('shift-schedule-table');
-                const mobileContainer = document.getElementById('shift-schedule-mobile');
-                if (!table || !mobileContainer) return;
-
-                const weekPicker = document.getElementById('week-picker');
-                const selectedDate = new Date(weekPicker.value + 'T00:00:00');
-                const weekDates = getWeekDateStrings(selectedDate);
-                
-                const shiftCategories = {
-                    "Open SL": ["Open SL"],
-                    "Open SM": ["Open SM"],
-                    "Mid SM": ["Mid SM"],
-                    "Close SL": ["Close SL"],
-                    "Close SM": ["Close SM"],
-                    "GY": ["GY"]
-                };
-
-                // --- DESKTOP TABLE RENDER ---
-                let thead = '<thead><tr><th class="w-48">Shift</th>';
-                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                weekDates.forEach((date, i) => {
-                    const datePart = date.split('-')[2];
-                    thead += `<th>${days[i]}<br><span class="font-normal text-sm">${datePart}</span></th>`;
+                    }
                 });
-                thead += '</tr></thead>';
-
-                let tbody = '<tbody>';
-                for (const category in shiftCategories) {
-                    tbody += `<tr><td class="font-semibold px-2 text-left">${category}</td>`;
-                    weekDates.forEach(date => {
-                        let cellContent = '';
-                        appState.managers.forEach(manager => {
-                            const scheduleKey = `${manager.id}_${date}`;
-                            const scheduleData = appState.managerSchedules[scheduleKey];
-                            if (scheduleData && shiftCategories[category].includes(scheduleData.shift)) {
-                                cellContent += `<div class="text-xs p-1">${manager.name}</div>`;
-                            }
-                        });
-                        tbody += `<td class="p-1 align-top text-xs">${cellContent}</td>`;
-                    });
-                    tbody += '</tr>';
-                }
-                tbody += '</tbody>';
-                table.innerHTML = thead + tbody;
-                
-                 // --- MOBILE LIST RENDER ---
-                let mobileHTML = '';
-                weekDates.forEach((date, i) => {
-                    const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-                    mobileHTML += `<div class="bg-white rounded-lg shadow p-4">
-                                    <h4 class="font-bold text-lg mb-2 border-b pb-2">${days[i]} - ${formattedDate}</h4>
-                                    <div class="space-y-3">`;
-                    for (const category in shiftCategories) {
-                        let managerNames = '';
-                        appState.managers.forEach(manager => {
-                            const scheduleKey = `${manager.id}_${date}`;
-                            const scheduleData = appState.managerSchedules[scheduleKey];
-                            if (scheduleData && shiftCategories[category].includes(scheduleData.shift)) {
-                                managerNames += `<div class="text-sm">${manager.name}</div>`;
-                            }
-                        });
-
-                        if(managerNames) {
-                             mobileHTML += `<div class="flex justify-between items-start">
-                                            <p class="font-semibold text-sm w-1/3 text-left">${category}</p>
-                                            <div class="w-2/3 text-right">${managerNames}</div>
-                                          </div>`;
-                        }
-                    }
-                    mobileHTML += `</div></div>`;
-                });
-                mobileContainer.innerHTML = mobileHTML;
+                appState.evaluationData = mergedEvalData.sort((a,b) => a.date - b.date);
             }
 
-            function openScheduleModal(managerId, date) {
-                const modal = document.getElementById('schedule-modal');
-                const title = document.getElementById('modal-title');
-                const shiftSelect = document.getElementById('modal-shift-select');
-                const timeInput = document.getElementById('modal-time-input');
-                const timeContainer = document.getElementById('modal-time-container');
-
-                const manager = appState.managers.find(m => m.id === managerId);
-                const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-                title.textContent = `Edit Schedule for ${manager.name} on ${formattedDate}`;
-
-                modal.dataset.managerId = managerId;
-                modal.dataset.date = date;
-
-                const shiftOptions = ["", "Open SL", "Open SM", "Mid SM", "Close SL", "Close SM", "GY", "Scheduling", "VL", "HL", "SL", "OFF", "Ordering", "People Day", "MDP", "Pull-out", "Marketing", "Store Day", "Travel", "Class", "Payroll", "Inventory", "Meeting", "Leave"];
-                
-                shiftSelect.innerHTML = shiftOptions.map(o => `<option value="${o}">${o}</option>`).join('');
-
-                const scheduleKey = `${managerId}_${date}`;
-                const scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
-
-                shiftSelect.value = scheduleData.shift;
-                timeInput.value = scheduleData.time;
-                
-                timeContainer.style.display = ['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(scheduleData.shift) ? 'none' : 'block';
-
-                modal.classList.remove('hidden');
-            }
-
-            async function saveScheduleFromModal() {
-                const modal = document.getElementById('schedule-modal');
-                const managerId = modal.dataset.managerId;
-                const date = modal.dataset.date;
-                const shift = document.getElementById('modal-shift-select').value;
-                const time = document.getElementById('modal-time-input').value;
-
-                const scheduleKey = `${managerId}_${date}`;
-                const weekKey = getWeekDateStrings(new Date(date + 'T00:00:00'))[0];
-                const scheduleData = { shift: shift, time: ['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(shift) ? '' : time };
-
-                try {
-                    const scheduleRef = db.collection("manager_schedules").doc(weekKey);
-                    await scheduleRef.set({ [scheduleKey]: scheduleData }, { merge: true });
-
-                    const leaveRecordId = `${managerId}_${date}`;
-                    const leaveRecordRef = db.collection('leave_records').doc(leaveRecordId);
-
-                    if (['VL', 'HL', 'SL'].includes(shift)) {
-                        const manager = appState.managers.find(m => m.id === managerId);
-                        await leaveRecordRef.set({
-                            managerId: managerId,
-                            managerName: manager.name,
-                            leaveType: shift,
-                            date: firebase.firestore.Timestamp.fromDate(new Date(date + 'T00:00:00'))
-                        });
-                    } else {
-                        await leaveRecordRef.delete().catch(() => {});
-                    }
-
-                    showToast("Schedule saved!", "success");
-                    appState.managerSchedules[scheduleKey] = scheduleData;
-                    renderWeeklySchedule();
-                    renderShiftSchedule();
-                    document.getElementById('schedule-modal').classList.add('hidden');
-                } catch (error) {
-                    console.error("Error saving schedule: ", error);
-                    showToast("Failed to save schedule.", "error");
-                }
-            }
-
-            async function clearScheduleFromModal() {
-                 const modal = document.getElementById('schedule-modal');
-                const managerId = modal.dataset.managerId;
-                const date = modal.dataset.date;
-                
-                const scheduleKey = `${managerId}_${date}`;
-                const weekKey = getWeekDateStrings(new Date(date + 'T00:00:00'))[0];
-                
-                try {
-                    const scheduleRef = db.collection("manager_schedules").doc(weekKey);
-                    await scheduleRef.update({
-                        [scheduleKey]: firebase.firestore.FieldValue.delete()
-                    });
-
-                    const leaveRecordId = `${managerId}_${date}`;
-                    await db.collection('leave_records').doc(leaveRecordId).delete().catch(() => {});
-
-                    showToast("Schedule cleared!", "success");
-                    delete appState.managerSchedules[scheduleKey];
-                    renderWeeklySchedule();
-                    renderShiftSchedule();
-                    document.getElementById('schedule-modal').classList.add('hidden');
-                } catch (error) {
-                    console.error("Error clearing schedule: ", error);
-                    showToast("Failed to clear schedule.", "error");
-                }
-            }
-
-
-            // --- NEW LEAVE CALENDAR FUNCTIONS ---
-            
-            function renderLeaveCalendar() {
-                const container = document.getElementById('leave-calendar-container');
-                if (!container) return;
-
-                const monthYearEl = document.getElementById('calendar-month-year');
-                const currentMonth = appState.calendarDate.getMonth();
-                const currentYear = appState.calendarDate.getFullYear();
-                
-                monthYearEl.textContent = `${appState.calendarDate.toLocaleString('default', { month: 'long' })} ${currentYear}`;
-
-                const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-                const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-                
-                const dayOffset = firstDay === 0 ? 6 : firstDay - 1;
-
-                let calendarHTML = '<div class="calendar-header">Mon</div><div class="calendar-header">Tue</div><div class="calendar-header">Wed</div><div class="calendar-header">Thu</div><div class="calendar-header">Fri</div><div class="calendar-header">Sat</div><div class="calendar-header">Sun</div>';
-
-                for (let i = 0; i < dayOffset; i++) {
-                    calendarHTML += '<div class="calendar-day other-month"></div>';
-                }
-
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const dateStr = getLocalDateString(new Date(currentYear, currentMonth, day));
-                    let leaveEntriesHTML = '';
-                    appState.plottedLeaves.forEach(leave => {
-                        const leaveStart = new Date(leave.startDate + 'T00:00:00');
-                        const leaveEnd = new Date(leave.endDate + 'T00:00:00');
-                        const currentDate = new Date(dateStr + 'T00:00:00');
-
-                        if (currentDate >= leaveStart && currentDate <= leaveEnd) {
-                            leaveEntriesHTML += `<div class="leave-entry ${leave.leaveType === 'VL' ? 'leave-vl' : 'leave-hl'}">${leave.managerName}</div>`;
-                        }
-                    });
-
-                    calendarHTML += `<div class="calendar-day" data-date="${dateStr}"><div class="day-number">${day}</div><div class="leave-entries">${leaveEntriesHTML}</div></div>`;
-                }
-                
-                container.innerHTML = `<div class="calendar">${calendarHTML}</div>`;
-            }
-
-            async function loadPlottedLeavesForMonth() {
-                const year = appState.calendarDate.getFullYear();
-                try {
-                    const snapshot = await db.collection('plotted_leaves').where('year', '==', year).get();
-                    appState.plottedLeaves = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                    renderLeaveCalendar();
-                } catch(error) {
-                    console.error("Error fetching leaves:", error);
-                    showToast("Could not load leave data.", "error");
-                }
-            }
-
-            function openLeaveModal(date = null) {
-                const modal = document.getElementById('leave-modal');
-                const managerSelect = document.getElementById('leave-manager-select');
-                const startDateInput = document.getElementById('leave-start-date');
-                const endDateInput = document.getElementById('leave-end-date');
-
-                managerSelect.innerHTML = appState.managers.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-                
-                const selectedDate = date ? date : getLocalDateString(new Date());
-                startDateInput.value = selectedDate;
-                endDateInput.value = selectedDate;
-
-                modal.classList.remove('hidden');
-            }
-
-            async function saveLeaveFromModal() {
-                const managerId = document.getElementById('leave-manager-select').value;
-                const managerName = appState.managers.find(m => m.id === managerId).name;
-                const leaveType = document.getElementById('leave-type-select').value;
-                const startDate = document.getElementById('leave-start-date').value;
-                const endDate = document.getElementById('leave-end-date').value;
-
-                if (!managerId || !startDate || !endDate) {
-                    showToast("Please fill all fields.", "error");
-                    return;
-                }
-
-                const start = new Date(startDate);
-                const end = new Date(endDate);
-
-                try {
-                    await db.collection('plotted_leaves').add({
-                        managerId,
-                        managerName,
-                        leaveType,
-                        startDate,
-                        endDate,
-                        year: start.getFullYear()
-                    });
-
-                    for (let d = start; d <= end; d.setDate(d.getDate() + 1)) {
-                        const dateStr = getLocalDateString(d);
-                        const weekKey = getWeekDateStrings(d)[0];
-                        const scheduleKey = `${managerId}_${dateStr}`;
-                        const scheduleData = { shift: leaveType, time: '' };
-                        
-                        const scheduleRef = db.collection("manager_schedules").doc(weekKey);
-                        await scheduleRef.set({ [scheduleKey]: scheduleData }, { merge: true });
-                    }
-
-                    showToast("Leave plotted successfully!", "success");
-                    document.getElementById('leave-modal').classList.add('hidden');
-                    loadPlottedLeavesForMonth();
-
-                } catch (error) {
-                    console.error("Error plotting leave:", error);
-                    showToast("Failed to plot leave.", "error");
-                }
-            }
-
-            async function loadAndRenderLeaveTracking() {
-                const container = document.getElementById('leave-records-container');
-                if (!container) return;
-                container.innerHTML = '<p class="text-gray-500 text-center py-4">Loading leave records...</p>';
-                try {
-                    const snapshot = await db.collection('leave_records').orderBy('managerName').get();
-                    const records = snapshot.docs.map(doc => doc.data());
-
-                    const leaveSummary = records.reduce((acc, record) => {
-                        if (!acc[record.managerName]) {
-                            acc[record.managerName] = { VL: 0, HL: 0, SL: 0 };
-                        }
-                        acc[record.managerName][record.leaveType]++;
-                        return acc;
-                    }, {});
-
-                    if (Object.keys(leaveSummary).length === 0) {
-                        container.innerHTML = '<p class="text-gray-500 text-center py-4">No leave records found.</p>';
-                        return;
-                    }
-
-                    let content = '';
-                    for (const managerName in leaveSummary) {
-                        const vlCount = leaveSummary[managerName].VL;
-                        const hlCount = leaveSummary[managerName].HL;
-                        const slCount = leaveSummary[managerName].SL;
-                        const total = vlCount + hlCount + slCount;
-                        content += `
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-lg">${managerName}</h4>
-                                <div class="mt-2 grid grid-cols-4 gap-4 text-center">
-                                    <div>
-                                        <p class="text-2xl font-bold text-blue-600">${vlCount}</p>
-                                        <p class="text-sm text-gray-500">VL</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-2xl font-bold text-green-600">${hlCount}</p>
-                                        <p class="text-sm text-gray-500">HL</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-2xl font-bold text-yellow-500">${slCount}</p>
-                                        <p class="text-sm text-gray-500">SL</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-2xl font-bold text-gray-800">${total}</p>
-                                        <p class="text-sm text-gray-500">Total</p>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    container.innerHTML = content;
-
-                } catch (error) {
-                    console.error("Error loading leave records:", error);
-                    container.innerHTML = '<p class="text-red-500 text-center py-4">Could not load leave records.</p>';
-                }
-            }
-
-
-            // --- NAVIGATION LOGIC ---
-            const navButtons = document.querySelectorAll('.nav-button');
-            navButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    appState.currentView = button.dataset.view;
-                    updateView();
-                });
-            });
-
+            // --- NAVIGATION & VIEW RENDERING ---
             function updateView() {
                 document.querySelectorAll('.view').forEach(section => section.classList.add('hidden'));
                 const currentSection = document.getElementById(`${appState.currentView}-section`);
                 if(currentSection) currentSection.classList.remove('hidden');
 
-                navButtons.forEach(btn => {
+                UI.navButtons.forEach(btn => {
                     btn.classList.toggle('active', btn.dataset.view === appState.currentView);
                 });
+                
+                applyAccessControl();
 
                 switch(appState.currentView) {
                     case 'dashboard': renderDashboard(); break;
                     case 'insights': renderInsights(); break;
                     case 'evaluator': renderEvaluator(); break;
-                    case 'manager-schedule': 
-                        loadManagers();
-                        document.querySelector('.schedule-tab.active')?.click();
-                        break;
+                    case 'manager-schedule': renderManagerSchedule(); break;
                     case 'activities': renderActivities(); break;
                     case 'historical': renderHistorical(); break;
                     case 'admin': renderAdmin(); break;
                 }
             }
-            
-            // --- FULL RENDERING FUNCTIONS ---
+
+            function setupDynamicContent() {
+                setupHistoricalFilters();
+                setupActivityFilters();
+                const weekPicker = document.getElementById('week-picker');
+                if (weekPicker) weekPicker.value = getLocalDateString(new Date());
+            }
+
+            // --- ACCESS CONTROL ---
+            function applyAccessControl() {
+                const isViewer = appState.accessLevel >= 3;
+                const isAdmin = appState.accessLevel === 1;
+
+                document.querySelectorAll('button[data-view="admin"]').forEach(btn => {
+                    btn.classList.toggle('hidden', !isAdmin);
+                });
+
+                const editableSections = [
+                    'datamgmt-section', 'activities-section', 'historical-section',
+                    'manager-schedule-section', 'admin-section'
+                ];
+                editableSections.forEach(sectionId => {
+                    const section = document.getElementById(sectionId);
+                    if (section) {
+                        section.classList.toggle('view-only-hard', isViewer);
+                    }
+                });
+            }
+
+            // --- FULL RENDER FUNCTIONS ---
             function renderDashboard() {
                 if (!appState.forecastData) return;
                 const { dates, sales, customers } = appState.forecastData;
@@ -1373,7 +939,7 @@
                 const weeklyCustomers = customers.slice(0, 7).reduce((a, b) => a + b, 0) / 7;
                 document.getElementById('avg-sales').textContent = `₱${weeklySales.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
                 document.getElementById('avg-customers').textContent = `${Math.round(weeklyCustomers).toLocaleString()}`;
-                document.getElementById('avg-atv').textContent = `₱${(weeklySales/weeklyCustomers).toFixed(2)}`;
+                document.getElementById('avg-atv').textContent = `₱${(weeklySales/weeklyCustomers || 0).toFixed(2)}`;
             }
 
             function renderInsights() {
@@ -1435,7 +1001,7 @@
                     <p class="font-bold">Resulting in a final forecast of <strong>${data.total.toFixed(0)}</strong> customers.</p>
                 `;
             }
-            
+
             function renderEvaluator() {
                 const salesAccuracyEl = document.getElementById('sales-accuracy');
                 const customerAccuracyEl = document.getElementById('customer-accuracy');
@@ -1496,32 +1062,268 @@
                 });
             }
 
-            function setupActivityFilters() {
-                const yearSelect = document.getElementById('activity-year');
-                if(!yearSelect) return;
-                if (!appState.activitiesData || appState.activitiesData.length === 0) {
-                    yearSelect.innerHTML = `<option>${new Date().getFullYear()}</option>`;
+            function renderManagerSchedule() {
+                const activeTab = document.querySelector('#manager-schedule-tabs .active')?.dataset.tab || 'weekly-schedule';
+                
+                switch(activeTab) {
+                    case 'weekly-schedule':
+                        const weekPicker = document.getElementById('week-picker');
+                        const weekDates = getWeekDateStrings(new Date(weekPicker.value + 'T00:00:00'));
+                        loadScheduleForWeek(weekDates);
+                        break;
+                    case 'shift-schedule':
+                        renderShiftSchedule();
+                        break;
+                    case 'leave-schedule':
+                        loadPlottedLeavesForMonth();
+                        break;
+                    case 'leave-tracking':
+                        loadAndRenderLeaveTracking();
+                        break;
+                    case 'manage-managers':
+                        renderManagerList();
+                        break;
+                }
+            }
+
+            function renderManagerList() {
+                const container = document.getElementById('manager-list-container');
+                if (!container) return;
+                container.innerHTML = '';
+                if (appState.managers.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500">No managers added yet.</p>';
                     return;
                 }
-
-                const years = [...new Set(appState.activitiesData.map(d => d.date.toDate().getFullYear()))].sort((a,b) => b - a);
-                const currentYear = new Date().getFullYear();
-
-                if (!years.includes(currentYear)) {
-                    years.push(currentYear);
-                    years.sort((a,b) => b - a);
-                }
-                
-                yearSelect.innerHTML = '';
-                years.forEach(y => {
-                    yearSelect.innerHTML += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`;
-                });
-                
-                yearSelect.addEventListener('change', () => {
-                    renderActivities();
+                appState.managers.forEach(manager => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg';
+                    div.innerHTML = `
+                        <p class="font-medium">${manager.name}</p>
+                        <button data-id="${manager.id}" class="delete-manager-btn text-red-500 hover:text-red-700 font-semibold">Delete</button>
+                    `;
+                    container.appendChild(div);
                 });
             }
 
+            async function loadScheduleForWeek(week) {
+                const weekKey = week[0];
+                try {
+                    const doc = await db.collection("manager_schedules").doc(weekKey).get();
+                    appState.managerSchedules = doc.exists ? doc.data() : {};
+                } catch (error) {
+                    console.error("Error loading schedule:", error);
+                    showToast("Could not load schedule data.", "error");
+                }
+                renderWeeklySchedule();
+                renderShiftSchedule();
+            }
+
+            function renderWeeklySchedule() {
+                const table = document.getElementById('weekly-schedule-table');
+                const mobileContainer = document.getElementById('weekly-schedule-mobile');
+                if (!table || !mobileContainer) return;
+
+                const weekPicker = document.getElementById('week-picker');
+                const selectedDate = new Date(weekPicker.value + 'T00:00:00');
+                const weekDates = getWeekDateStrings(selectedDate);
+
+                let thead = '<thead><tr><th class="w-48">Manager</th>';
+                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                weekDates.forEach((date, i) => {
+                    thead += `<th>${days[i]}<br><span class="font-normal text-sm">${date.split('-')[2]}</span></th>`;
+                });
+                thead += '</tr></thead>';
+
+                let tbody = '<tbody>';
+                if (appState.managers.length === 0) {
+                    tbody += '<tr><td colspan="8" class="text-center text-gray-500 py-4">Please add managers first.</td></tr>';
+                } else {
+                    appState.managers.forEach(manager => {
+                        tbody += `<tr><td class="font-semibold px-2 text-left">${manager.name}</td>`;
+                        weekDates.forEach(date => {
+                            const scheduleKey = `${manager.id}_${date}`;
+                            const scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
+                            let offClass = scheduleData.shift === 'OFF' ? 'text-red-500' : '';
+                            let cellContent = scheduleData.shift ? `<div class="text-sm"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-gray-500 text-xs">${scheduleData.time || ''}</p></div>` : '<span class="text-2xl font-light text-gray-400">+</span>';
+                            tbody += `<td class="p-1"><div class="schedule-cell" data-manager-id="${manager.id}" data-date="${date}">${cellContent}</div></td>`;
+                        });
+                        tbody += '</tr>';
+                    });
+                }
+                table.innerHTML = thead + '<tbody>' + tbody + '</tbody>';
+
+                let mobileHTML = '';
+                if (appState.managers.length > 0) {
+                    weekDates.forEach((date, i) => {
+                        const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                        mobileHTML += `<div class="bg-white rounded-lg shadow p-4 mt-4"><h4 class="font-bold text-lg mb-2 border-b pb-2">${days[i]} - ${formattedDate}</h4><div class="space-y-2">`;
+                        appState.managers.forEach(manager => {
+                            const scheduleKey = `${manager.id}_${date}`;
+                            const scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
+                            let offClass = scheduleData.shift === 'OFF' ? 'text-red-500' : '';
+                            let shiftContent = scheduleData.shift ? `<div class="text-right"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-gray-500 text-xs">${scheduleData.time || ''}</p></div>` : '<span class="text-xl font-light text-gray-400">+</span>';
+                            mobileHTML += `<div class="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 schedule-cell" data-manager-id="${manager.id}" data-date="${date}"><p class="font-medium">${manager.name}</p>${shiftContent}</div>`;
+                        });
+                        mobileHTML += `</div></div>`;
+                    });
+                }
+                mobileContainer.innerHTML = mobileHTML;
+            }
+
+            function renderShiftSchedule() {
+                const table = document.getElementById('shift-schedule-table');
+                const mobileContainer = document.getElementById('shift-schedule-mobile');
+                if (!table || !mobileContainer) return;
+
+                const weekPicker = document.getElementById('week-picker');
+                const selectedDate = new Date(weekPicker.value + 'T00:00:00');
+                const weekDates = getWeekDateStrings(selectedDate);
+                
+                const shiftCategories = { "Open SL": ["Open SL"], "Open SM": ["Open SM"], "Mid SM": ["Mid SM"], "Close SL": ["Close SL"], "Close SM": ["Close SM"], "GY": ["GY"] };
+
+                let thead = '<thead><tr><th class="w-48">Shift</th>';
+                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                weekDates.forEach((date, i) => {
+                    thead += `<th>${days[i]}<br><span class="font-normal text-sm">${date.split('-')[2]}</span></th>`;
+                });
+                thead += '</tr></thead>';
+
+                let tbody = '<tbody>';
+                for (const category in shiftCategories) {
+                    tbody += `<tr><td class="font-semibold px-2 text-left">${category}</td>`;
+                    weekDates.forEach(date => {
+                        let cellContent = '';
+                        appState.managers.forEach(manager => {
+                            const scheduleKey = `${manager.id}_${date}`;
+                            const scheduleData = appState.managerSchedules[scheduleKey];
+                            if (scheduleData && shiftCategories[category].includes(scheduleData.shift)) {
+                                cellContent += `<div class="text-xs p-1">${manager.name}</div>`;
+                            }
+                        });
+                        tbody += `<td class="p-1 align-top text-xs">${cellContent}</td>`;
+                    });
+                    tbody += '</tr>';
+                }
+                table.innerHTML = thead + '<tbody>' + tbody + '</tbody>';
+                
+                let mobileHTML = '';
+                weekDates.forEach((date, i) => {
+                    const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                    mobileHTML += `<div class="bg-white rounded-lg shadow p-4 mt-4"><h4 class="font-bold text-lg mb-2 border-b pb-2">${days[i]} - ${formattedDate}</h4><div class="space-y-3">`;
+                    for (const category in shiftCategories) {
+                        let managerNames = '';
+                        appState.managers.forEach(manager => {
+                            const scheduleKey = `${manager.id}_${date}`;
+                            const scheduleData = appState.managerSchedules[scheduleKey];
+                            if (scheduleData && shiftCategories[category].includes(scheduleData.shift)) {
+                                managerNames += `<div class="text-sm">${manager.name}</div>`;
+                            }
+                        });
+
+                        if(managerNames) {
+                             mobileHTML += `<div class="flex justify-between items-start"><p class="font-semibold text-sm w-1/3 text-left">${category}</p><div class="w-2/3 text-right">${managerNames}</div></div>`;
+                        }
+                    }
+                    mobileHTML += `</div></div>`;
+                });
+                mobileContainer.innerHTML = mobileHTML;
+            }
+
+            function renderLeaveCalendar() {
+                const container = document.getElementById('leave-calendar-container');
+                if (!container) return;
+
+                const monthYearEl = document.getElementById('calendar-month-year');
+                const currentMonth = appState.calendarDate.getMonth();
+                const currentYear = appState.calendarDate.getFullYear();
+                
+                monthYearEl.textContent = `${appState.calendarDate.toLocaleString('default', { month: 'long' })} ${currentYear}`;
+
+                const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+                const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                const dayOffset = firstDay === 0 ? 6 : firstDay - 1;
+
+                let calendarHTML = '<div class="calendar-header">Mon</div><div class="calendar-header">Tue</div><div class="calendar-header">Wed</div><div class="calendar-header">Thu</div><div class="calendar-header">Fri</div><div class="calendar-header">Sat</div><div class="calendar-header">Sun</div>';
+
+                for (let i = 0; i < dayOffset; i++) {
+                    calendarHTML += '<div class="calendar-day other-month"></div>';
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = getLocalDateString(new Date(currentYear, currentMonth, day));
+                    let leaveEntriesHTML = '';
+                    appState.plottedLeaves.forEach(leave => {
+                        const leaveStart = new Date(leave.startDate + 'T00:00:00');
+                        const leaveEnd = new Date(leave.endDate + 'T00:00:00');
+                        const currentDate = new Date(dateStr + 'T00:00:00');
+
+                        if (currentDate >= leaveStart && currentDate <= leaveEnd) {
+                            leaveEntriesHTML += `<div class="leave-entry ${leave.leaveType === 'VL' ? 'leave-vl' : 'leave-hl'}">${leave.managerName}</div>`;
+                        }
+                    });
+
+                    calendarHTML += `<div class="calendar-day" data-date="${dateStr}"><div class="day-number">${day}</div><div class="leave-entries">${leaveEntriesHTML}</div></div>`;
+                }
+                
+                container.innerHTML = `<div class="calendar">${calendarHTML}</div>`;
+            }
+
+            async function loadPlottedLeavesForMonth() {
+                const year = appState.calendarDate.getFullYear();
+                try {
+                    const snapshot = await db.collection('plotted_leaves').where('year', '==', year).get();
+                    appState.plottedLeaves = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                    renderLeaveCalendar();
+                } catch(error) {
+                    console.error("Error fetching leaves:", error);
+                    showToast("Could not load leave data.", "error");
+                }
+            }
+
+            async function loadAndRenderLeaveTracking() {
+                const container = document.getElementById('leave-records-container');
+                if (!container) return;
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">Loading leave records...</p>';
+                try {
+                    const snapshot = await db.collection('leave_records').orderBy('managerName').get();
+                    const records = snapshot.docs.map(doc => doc.data());
+
+                    const leaveSummary = records.reduce((acc, record) => {
+                        if (!acc[record.managerName]) {
+                            acc[record.managerName] = { VL: 0, HL: 0, SL: 0 };
+                        }
+                        acc[record.managerName][record.leaveType]++;
+                        return acc;
+                    }, {});
+
+                    if (Object.keys(leaveSummary).length === 0) {
+                        container.innerHTML = '<p class="text-gray-500 text-center py-4">No leave records found.</p>';
+                        return;
+                    }
+
+                    let content = '';
+                    for (const managerName in leaveSummary) {
+                        const { VL, HL, SL } = leaveSummary[managerName];
+                        content += `
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-lg">${managerName}</h4>
+                                <div class="mt-2 grid grid-cols-4 gap-4 text-center">
+                                    <div><p class="text-2xl font-bold text-blue-600">${VL}</p><p class="text-sm text-gray-500">VL</p></div>
+                                    <div><p class="text-2xl font-bold text-green-600">${HL}</p><p class="text-sm text-gray-500">HL</p></div>
+                                    <div><p class="text-2xl font-bold text-yellow-500">${SL}</p><p class="text-sm text-gray-500">SL</p></div>
+                                    <div><p class="text-2xl font-bold text-gray-800">${VL+HL+SL}</p><p class="text-sm text-gray-500">Total</p></div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    container.innerHTML = content;
+
+                } catch (error) {
+                    console.error("Error loading leave records:", error);
+                    container.innerHTML = '<p class="text-red-500 text-center py-4">Could not load leave records.</p>';
+                }
+            }
+            
             function renderActivities() {
                 const tabsContainer = document.getElementById('activity-tabs-container');
                 const contentContainer = document.getElementById('activity-content-container');
@@ -1530,7 +1332,6 @@
 
                 tabsContainer.innerHTML = '';
                 contentContainer.innerHTML = '';
-
                 const selectedYear = parseInt(yearSelect.value);
 
                 if (!appState.activitiesData || appState.activitiesData.length === 0) {
@@ -1539,7 +1340,6 @@
                 }
                 
                 const yearActivities = appState.activitiesData.filter(d => d.date.toDate().getFullYear() === selectedYear);
-
                 if (yearActivities.length === 0) {
                     contentContainer.innerHTML = `<p class="text-gray-500 text-center py-4">No activities found for ${selectedYear}.</p>`;
                     return;
@@ -1548,9 +1348,7 @@
                 const activitiesByMonth = yearActivities.reduce((acc, activity) => {
                     const month = activity.date.toDate().toLocaleString('default', { month: 'long' });
                     const monthKey = `${activity.date.toDate().getMonth()}_${month}`;
-                    if (!acc[monthKey]) {
-                        acc[monthKey] = [];
-                    }
+                    if (!acc[monthKey]) acc[monthKey] = [];
                     acc[monthKey].push(activity);
                     return acc;
                 }, {});
@@ -1558,9 +1356,8 @@
                 const sortedMonthKeys = Object.keys(activitiesByMonth).sort((a, b) => parseInt(a.split('_')[0]) - parseInt(b.split('_')[0]));
 
                 sortedMonthKeys.forEach((monthKey, index) => {
-                    const monthName = monthKey.split('_')[1];
                     const tab = document.createElement('button');
-                    tab.textContent = monthName;
+                    tab.textContent = monthKey.split('_')[1];
                     tab.className = `month-tab px-4 py-2 font-semibold border-b-2 transition-colors duration-300 ${index === 0 ? 'active' : 'border-transparent'}`;
                     tab.dataset.month = monthKey;
                     tabsContainer.appendChild(tab);
@@ -1574,35 +1371,22 @@
                     const totalSales = monthActivities.reduce((sum, act) => sum + (act.potential_sales || 0), 0);
                     const unconfirmed = monthActivities.filter(act => act.remarks !== 'Confirmed').length;
 
-                    const summary = document.createElement('div');
-                    summary.className = 'grid grid-cols-2 gap-4 mb-4';
-                    summary.innerHTML = `
-                        <div class="stat-card text-center">
-                            <h3 class="text-lg font-semibold text-gray-500">Total Expected Sales</h3>
-                            <p class="text-3xl font-bold text-green-600 mt-2">₱${totalSales.toLocaleString()}</p>
-                        </div>
-                        <div class="stat-card text-center">
-                            <h3 class="text-lg font-semibold text-gray-500">Unconfirmed Activities</h3>
-                            <p class="text-3xl font-bold text-yellow-600 mt-2">${unconfirmed}</p>
+                    contentContainer.innerHTML = `
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="stat-card text-center"><h3 class="text-lg font-semibold text-gray-500">Total Expected Sales</h3><p class="text-3xl font-bold text-green-600 mt-2">₱${totalSales.toLocaleString()}</p></div>
+                            <div class="stat-card text-center"><h3 class="text-lg font-semibold text-gray-500">Unconfirmed Activities</h3><p class="text-3xl font-bold text-yellow-600 mt-2">${unconfirmed}</p></div>
                         </div>
                     `;
-                    contentContainer.appendChild(summary);
-
+                    
                     const listContainer = document.createElement('div');
                     listContainer.className = 'space-y-4';
-                    monthActivities.forEach(activity => {
-                        const card = createActivityCard(activity);
-                        listContainer.appendChild(card);
-                    });
+                    monthActivities.forEach(activity => listContainer.appendChild(createActivityCard(activity)));
                     contentContainer.appendChild(listContainer);
                 }
 
                 tabsContainer.addEventListener('click', e => {
                     if (e.target.classList.contains('month-tab')) {
-                        const currentActive = tabsContainer.querySelector('.active');
-                        if (currentActive) {
-                            currentActive.classList.remove('active');
-                        }
+                        tabsContainer.querySelector('.active')?.classList.remove('active');
                         e.target.classList.add('active');
                         displayMonth(e.target.dataset.month);
                     }
@@ -1618,7 +1402,7 @@
                 const card = document.createElement('div');
                 card.className = 'bg-white p-4 rounded-lg shadow border';
                 card.innerHTML = `
-                    <div id="view-${activity.id}">
+                    <div id="view-activity-${activity.id}">
                         <div class="flex justify-between items-center">
                             <div>
                                 <p class="font-bold text-lg">${activity.activity_name}</p>
@@ -1635,7 +1419,7 @@
                             <p><strong>Customer:</strong> ${activity.customer_name || 'N/A'}</p>
                         </div>
                     </div>
-                    <form id="edit-form-${activity.id}" class="hidden space-y-2 mt-4">
+                    <form id="edit-form-activity-${activity.id}" class="hidden space-y-2 mt-4">
                         <input type="text" value="${activity.activity_name}" class="w-full p-2 border rounded" placeholder="Activity Name">
                         <input type="text" value="${activity.customer_name || ''}" class="w-full p-2 border rounded" placeholder="Customer Name">
                         <input type="date" value="${date.toISOString().split('T')[0]}" class="w-full p-2 border rounded">
@@ -1647,12 +1431,24 @@
                             <option ${activity.remarks === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
                         </select>
                         <div class="flex space-x-2">
-                            <button type="submit" data-id="${activity.id}" class="update-activity-btn w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg">Save</button>
-                            <button type="button" data-id="${activity.id}" class="cancel-edit-btn w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                            <button type="button" data-id="${activity.id}" class="update-activity-btn w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg">Save</button>
+                            <button type="button" data-id="${activity.id}" class="cancel-edit-activity-btn w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
                         </div>
                     </form>
                 `;
                 return card;
+            }
+
+            function setupActivityFilters() {
+                const yearSelect = document.getElementById('activity-year');
+                if(!yearSelect || !appState.activitiesData) return;
+                
+                const years = [...new Set(appState.activitiesData.map(d => d.date.toDate().getFullYear()))].sort((a,b) => b - a);
+                const currentYear = new Date().getFullYear();
+                if (!years.includes(currentYear)) years.unshift(currentYear);
+                
+                yearSelect.innerHTML = years.map(y => `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`).join('');
+                yearSelect.addEventListener('change', renderActivities);
             }
 
             function renderHistorical(year, month) {
@@ -1665,17 +1461,10 @@
                 }
 
                 let filteredData = appState.historicalData;
-                if (year) {
-                    filteredData = filteredData.filter(d => d.date.toDate().getFullYear() === year);
-                }
-                if (month !== null && month !== undefined && month !== '') {
-                    filteredData = filteredData.filter(d => d.date.toDate().getMonth() === month);
-                }
+                if (year) filteredData = filteredData.filter(d => d.date.toDate().getFullYear() === year);
+                if (month !== null && month !== undefined && month !== '') filteredData = filteredData.filter(d => d.date.toDate().getMonth() === month);
 
-                 filteredData.forEach(record => {
-                    const card = createHistoricalCard(record);
-                    container.appendChild(card);
-                });
+                 filteredData.forEach(record => container.appendChild(createHistoricalCard(record)));
             }
 
             function createHistoricalCard(record) {
@@ -1700,10 +1489,10 @@
                     </div>
                     <form id="edit-form-hist-${record.id}" class="hidden space-y-2 mt-4">
                         <div class="grid grid-cols-2 gap-4">
-                            <input type="number" step="0.01" value="${record.sales}" class="w-full p-2 border rounded">
-                            <input type="number" value="${record.customers}" class="w-full p-2 border rounded">
-                            <input type="number" step="0.01" value="${record.add_on_sales || 0}" class="w-full p-2 border rounded">
-                            <select class="w-full p-2 border rounded">
+                             <input type="number" step="0.01" value="${record.sales}" class="w-full p-2 border rounded" placeholder="Sales">
+                             <input type="number" value="${record.customers}" class="w-full p-2 border rounded" placeholder="Customers">
+                             <input type="number" step="0.01" value="${record.add_on_sales || 0}" class="w-full p-2 border rounded" placeholder="Add-on Sales">
+                             <select class="w-full p-2 border rounded">
                                 <option ${record.weather === 'Sunny' ? 'selected' : ''}>Sunny</option>
                                 <option ${record.weather === 'Cloudy' ? 'selected' : ''}>Cloudy</option>
                                 <option ${record.weather === 'Rainy' ? 'selected' : ''}>Rainy</option>
@@ -1711,7 +1500,7 @@
                             </select>
                         </div>
                         <div class="flex space-x-2">
-                            <button type="submit" data-id="${record.id}" class="update-historical-btn w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg">Save</button>
+                            <button type="button" data-id="${record.id}" class="update-historical-btn w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg">Save</button>
                             <button type="button" data-id="${record.id}" class="cancel-edit-hist-btn w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
                         </div>
                     </form>
@@ -1722,9 +1511,9 @@
             function setupHistoricalFilters() {
                 const yearSelect = document.getElementById('hist-year');
                 const monthSelect = document.getElementById('hist-month');
-                if(!yearSelect || !monthSelect) return;
+                if(!yearSelect || !monthSelect || !appState.historicalData) return;
                 
-                const years = [...new Set(appState.historicalData.map(d => d.date.toDate().getFullYear()))];
+                const years = [...new Set(appState.historicalData.map(d => d.date.toDate().getFullYear()))].sort((a,b) => b - a);
                 yearSelect.innerHTML = '<option value="">All Years</option>';
                 years.forEach(y => yearSelect.innerHTML += `<option value="${y}">${y}</option>`);
 
@@ -1740,8 +1529,6 @@
 
                 yearSelect.addEventListener('change', updateFilter);
                 monthSelect.addEventListener('change', updateFilter);
-                
-                renderHistorical(null, null);
             }
 
             function renderAdmin() {
@@ -1757,9 +1544,7 @@
                     const card = document.createElement('div');
                     card.className = 'bg-gray-50 p-4 rounded-lg border flex justify-between items-center';
                     card.innerHTML = `
-                        <div>
-                            <p class="font-bold text-lg">${user.username}</p>
-                        </div>
+                        <div><p class="font-bold text-lg">${user.username}</p></div>
                         <div class="flex items-center space-x-4">
                             <select data-id="${user.id}" class="user-access-level-select w-full p-2 border rounded">
                                 <option value="1" ${user.access_level === 1 ? 'selected' : ''}>Admin</option>
@@ -1773,75 +1558,35 @@
                 });
             }
 
-
             // --- EVENT LISTENERS ---
-            function setupAppEventListeners() {
+            function setupAllEventListeners() {
+                UI.navButtons.forEach(button => button.addEventListener('click', () => {
+                    appState.currentView = button.dataset.view;
+                    updateView();
+                }));
+                UI.logoutBtn.addEventListener('click', () => auth.signOut());
+
+                document.getElementById('daily-record-form')?.addEventListener('submit', handleDailyRecordSave);
+                document.getElementById('event-form')?.addEventListener('submit', handleEventSave);
+                document.getElementById('activity-form')?.addEventListener('submit', handleActivitySave);
+                document.getElementById('add-manager-form')?.addEventListener('submit', handleAddManager);
+
+                document.getElementById('content-area')?.addEventListener('click', handleContentAreaClicks);
+                document.getElementById('schedule-modal')?.addEventListener('click', handleScheduleModalClicks);
+                document.getElementById('leave-modal')?.addEventListener('click', handleLeaveModalClicks);
+                
                 document.querySelectorAll('.eval-toggle-button').forEach(button => {
                     button.addEventListener('click', (e) => {
-                        document.querySelectorAll('.eval-toggle-button').forEach(btn => btn.classList.remove('bg-[#DA291C]', 'text-white'));
+                        document.querySelectorAll('.eval-toggle-button').forEach(btn => {
+                            btn.classList.remove('bg-[#DA291C]', 'text-white');
+                            btn.classList.add('text-gray-600');
+                        });
                         e.target.classList.add('bg-[#DA291C]', 'text-white');
+                        e.target.classList.remove('text-gray-600');
+                        
                         appState.evalDays = e.target.id === 'eval-7-day' ? 7 : 30;
                         renderEvaluator();
                     });
-                });
-                
-                // --- MANAGER SCHEDULE LISTENERS ---
-                const managerScheduleTabs = document.getElementById('manager-schedule-tabs');
-                managerScheduleTabs?.addEventListener('click', (e) => {
-                    if (e.target.tagName === 'BUTTON') {
-                        const tab = e.target.dataset.tab;
-                        
-                        managerScheduleTabs.querySelectorAll('.schedule-tab').forEach(btn => btn.classList.remove('active'));
-                        e.target.classList.add('active');
-
-                        document.querySelectorAll('.schedule-content').forEach(content => content.classList.add('hidden'));
-                        document.getElementById(`${tab}-content`)?.classList.remove('hidden');
-
-                        if (tab === 'weekly-schedule') {
-                            const weekPicker = document.getElementById('week-picker');
-                            const weekDates = getWeekDateStrings(new Date(weekPicker.value + 'T00:00:00'));
-                            loadScheduleForWeek(weekDates);
-                        } else if (tab === 'shift-schedule') {
-                            renderShiftSchedule();
-                        } else if (tab === 'leave-schedule') {
-                            loadPlottedLeavesForMonth();
-                        } else if (tab === 'leave-tracking') {
-                            loadAndRenderLeaveTracking();
-                        } else if (tab === 'manage-managers') {
-                            loadManagers();
-                        }
-                    }
-                });
-
-                document.getElementById('add-manager-form')?.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const nameInput = document.getElementById('manager-name');
-                    const name = nameInput.value.trim();
-                    if (name) {
-                        try {
-                            await db.collection("managers").add({ name: name });
-                            showToast("Manager added successfully!");
-                            nameInput.value = '';
-                            loadManagers();
-                        } catch (error) {
-                            showToast("Error adding manager.", "error");
-                        }
-                    }
-                });
-
-                document.getElementById('manage-managers-content')?.addEventListener('click', async (e) => {
-                    if (e.target.classList.contains('delete-manager-btn')) {
-                        const managerId = e.target.dataset.id;
-                        if (confirm('Are you sure you want to delete this manager? This action cannot be undone.')) {
-                            try {
-                                await db.collection("managers").doc(managerId).delete();
-                                showToast("Manager deleted.");
-                                loadManagers();
-                            } catch (error) {
-                                showToast("Error deleting manager.", "error");
-                            }
-                        }
-                    }
                 });
 
                 const weekPicker = document.getElementById('week-picker');
@@ -1850,123 +1595,367 @@
                     const weekDates = getWeekDateStrings(selectedDate);
                     loadScheduleForWeek(weekDates);
                 });
-                
-                const scheduleTable = document.getElementById('weekly-schedule-table');
-                scheduleTable?.addEventListener('click', (e) => {
-                    const cell = e.target.closest('.schedule-cell');
-                    if (cell && cell.dataset.managerId) {
-                        openScheduleModal(cell.dataset.managerId, cell.dataset.date);
-                    }
-                });
-                
-                const scheduleMobileContainer = document.getElementById('weekly-schedule-mobile');
-                scheduleMobileContainer?.addEventListener('click', (e) => {
-                    const cell = e.target.closest('.schedule-cell');
-                    if (cell && cell.dataset.managerId) {
-                        openScheduleModal(cell.dataset.managerId, cell.dataset.date);
-                    }
-                });
-
-                // Modal Listeners
-                document.getElementById('modal-cancel-btn')?.addEventListener('click', () => {
-                    document.getElementById('schedule-modal').classList.add('hidden');
-                });
-                document.getElementById('modal-save-btn')?.addEventListener('click', saveScheduleFromModal);
-                document.getElementById('modal-delete-btn')?.addEventListener('click', clearScheduleFromModal);
-
-                document.getElementById('modal-shift-select')?.addEventListener('change', (e) => {
-                    const timeContainer = document.getElementById('modal-time-container');
-                    if (['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(e.target.value)) {
-                        timeContainer.style.display = 'none';
-                    } else {
-                        timeContainer.style.display = 'block';
-                    }
-                });
-
-
-                // --- LEAVE CALENDAR LISTENERS ---
-                document.getElementById('prev-month-btn')?.addEventListener('click', () => {
-                    appState.calendarDate.setMonth(appState.calendarDate.getMonth() - 1);
-                    loadPlottedLeavesForMonth();
-                });
-                document.getElementById('next-month-btn')?.addEventListener('click', () => {
-                    appState.calendarDate.setMonth(appState.calendarDate.getMonth() + 1);
-                    loadPlottedLeavesForMonth();
-                });
-                document.getElementById('add-leave-btn')?.addEventListener('click', () => openLeaveModal());
-                
-                document.getElementById('leave-calendar-container')?.addEventListener('click', (e) => {
-                    const dayCell = e.target.closest('.calendar-day');
-                    if (dayCell && dayCell.dataset.date) {
-                        openLeaveModal(dayCell.dataset.date);
-                    }
-                });
-
-                // Leave Modal Listeners
-                document.getElementById('leave-cancel-btn')?.addEventListener('click', () => {
-                    document.getElementById('leave-modal').classList.add('hidden');
-                });
-                document.getElementById('leave-save-btn')?.addEventListener('click', saveLeaveFromModal);
             }
             
-            // --- AUTHENTICATION FLOW ---
-            const loginForm = document.getElementById('login-form');
-            const loginScreen = document.getElementById('login-screen');
-            const appContainer = document.getElementById('app-container');
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const loginError = document.getElementById('login-error');
-            const logoutBtn = document.getElementById('logout-btn');
-
-            loginForm?.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const email = loginForm.email.value;
-                const password = loginForm.password.value;
-                loginError.innerHTML = '';
+            // --- EVENT HANDLER FUNCTIONS ---
+            function handleContentAreaClicks(e) {
+                const target = e.target;
+                const id = target.dataset.id;
                 
+                if(target.closest('#historical-list')) handleHistoricalListClicks(e);
+                if(target.closest('#activity-content-container')) handleActivityListClicks(e);
+                if(target.closest('#manager-schedule-section')) handleManagerScheduleClicks(e);
+                if(target.closest('#admin-section')) handleAdminClicks(e);
+            }
+
+            async function handleDailyRecordSave(e) {
+                e.preventDefault();
+                const form = e.target;
+                const data = {
+                    date: firebase.firestore.Timestamp.fromDate(new Date(form['record-date'].value + 'T00:00:00')),
+                    sales: parseFloat(form['record-sales'].value),
+                    customers: parseInt(form['record-customers'].value),
+                    add_on_sales: parseFloat(form['record-addons'].value),
+                    weather: form['record-weather'].value,
+                };
+                if (!data.date || isNaN(data.sales) || isNaN(data.customers) || isNaN(data.add_on_sales)) return showToast("Please fill all fields correctly.", "error");
+                
+                try {
+                    await db.collection("historical_data").add(data);
+                    showToast("Daily record saved!", "success");
+                    form.reset();
+                    loadInitialData();
+                } catch (error) { showToast("Failed to save record.", "error"); }
+            }
+            
+            async function handleEventSave(e) {
+                e.preventDefault();
+                const form = e.target;
+                const data = {
+                    activity_name: form['event-name'].value,
+                    date: firebase.firestore.Timestamp.fromDate(new Date(form['event-date'].value + 'T00:00:00')),
+                    potential_sales: 0, remarks: 'Event', customer_name: ''
+                };
+                if (!data.activity_name || !data.date) return showToast("Please fill all fields.", "error");
+                
+                try {
+                    await db.collection("future_activities").add(data);
+                    showToast("Event saved!", "success");
+                    form.reset();
+                    loadInitialData();
+                } catch (error) { showToast("Failed to save event.", "error"); }
+            }
+
+            async function handleActivitySave(e) {
+                e.preventDefault();
+                const form = e.target;
+                const data = {
+                    activity_name: form['activity-name'].value,
+                    customer_name: form['customer-name'].value,
+                    date: firebase.firestore.Timestamp.fromDate(new Date(form['activity-date'].value + 'T00:00:00')),
+                    potential_sales: parseFloat(form['activity-sales'].value),
+                    remarks: form['activity-status'].value,
+                };
+                if (!data.activity_name || !data.date || isNaN(data.potential_sales)) return showToast("Please fill all required fields.", "error");
+
+                try {
+                    await db.collection("future_activities").add(data);
+                    showToast("Activity saved!", "success");
+                    form.reset();
+                    loadInitialData();
+                } catch (error) { showToast("Failed to save activity.", "error"); }
+            }
+
+            async function handleAddManager(e) {
+                e.preventDefault();
+                const nameInput = document.getElementById('manager-name');
+                const name = nameInput.value.trim();
+                if (name) {
+                    try {
+                        await db.collection("managers").add({ name: name, sortOrder: appState.managers.length });
+                        showToast("Manager added!", "success");
+                        nameInput.value = '';
+                        loadInitialData();
+                    } catch (error) { showToast("Error adding manager.", "error"); }
+                }
+            }
+            
+            function handleHistoricalListClicks(e) {
+                const target = e.target;
+                const id = target.dataset.id;
+                if (!id) return;
+
+                const viewDiv = document.getElementById(`view-hist-${id}`);
+                const editForm = document.getElementById(`edit-form-hist-${id}`);
+
+                if (target.classList.contains('edit-historical-btn')) {
+                    viewDiv.classList.add('hidden');
+                    editForm.classList.remove('hidden');
+                }
+                else if (target.classList.contains('cancel-edit-hist-btn')) {
+                    viewDiv.classList.remove('hidden');
+                    editForm.classList.add('hidden');
+                }
+                else if (target.classList.contains('delete-historical-btn')) {
+                    if (confirm('Are you sure?')) {
+                        db.collection('historical_data').doc(id).delete()
+                            .then(() => { showToast('Record deleted.', 'success'); loadInitialData(); })
+                            .catch(err => showToast('Error deleting record.', 'error'));
+                    }
+                }
+                else if (target.classList.contains('update-historical-btn')) {
+                    const [sales, customers, addons, weather] = editForm.elements;
+                    const data = {
+                        sales: parseFloat(sales.value), customers: parseInt(customers.value),
+                        add_on_sales: parseFloat(addons.value), weather: weather.value
+                    };
+                    db.collection('historical_data').doc(id).update(data)
+                        .then(() => { showToast('Record updated.', 'success'); loadInitialData(); })
+                        .catch(err => showToast('Error updating record.', 'error'));
+                }
+            }
+
+            function handleActivityListClicks(e) {
+                const target = e.target;
+                const id = target.dataset.id;
+                if (!id) return;
+
+                const viewDiv = document.getElementById(`view-activity-${id}`);
+                const editForm = document.getElementById(`edit-form-activity-${id}`);
+
+                if (target.classList.contains('edit-activity-btn')) {
+                    viewDiv.classList.add('hidden');
+                    editForm.classList.remove('hidden');
+                } else if (target.classList.contains('cancel-edit-activity-btn')) {
+                    viewDiv.classList.remove('hidden');
+                    editForm.classList.add('hidden');
+                } else if (target.classList.contains('delete-activity-btn')) {
+                    if (confirm('Are you sure?')) {
+                        db.collection('future_activities').doc(id).delete()
+                            .then(() => { showToast('Activity deleted.', 'success'); loadInitialData(); })
+                            .catch(err => showToast('Error deleting activity.', 'error'));
+                    }
+                } else if (target.classList.contains('update-activity-btn')) {
+                    const [name, customer, date, sales, status] = editForm.elements;
+                    const data = {
+                        activity_name: name.value, customer_name: customer.value,
+                        date: firebase.firestore.Timestamp.fromDate(new Date(date.value + 'T00:00:00')),
+                        potential_sales: parseFloat(sales.value), remarks: status.value
+                    };
+                    db.collection('future_activities').doc(id).update(data)
+                        .then(() => { showToast('Activity updated.', 'success'); loadInitialData(); })
+                        .catch(err => showToast('Error updating activity.', 'error'));
+                }
+            }
+
+            function handleManagerScheduleClicks(e) {
+                const target = e.target;
+                if (target.closest('.schedule-tab')) {
+                    const tab = target.closest('.schedule-tab').dataset.tab;
+                    document.querySelectorAll('.schedule-tab').forEach(btn => btn.classList.remove('active'));
+                    target.closest('.schedule-tab').classList.add('active');
+                    document.querySelectorAll('.schedule-content').forEach(content => content.classList.add('hidden'));
+                    document.getElementById(`${tab}-content`)?.classList.remove('hidden');
+                    renderManagerSchedule();
+                }
+                 else if (target.classList.contains('delete-manager-btn')) {
+                    const managerId = target.dataset.id;
+                    if (confirm('Are you sure?')) {
+                        db.collection("managers").doc(managerId).delete()
+                            .then(() => { showToast("Manager deleted."); loadInitialData(); })
+                            .catch(error => showToast("Error deleting manager.", "error"));
+                    }
+                }
+                 else if (target.closest('.schedule-cell')) {
+                    const cell = target.closest('.schedule-cell');
+                    if (cell.dataset.managerId) {
+                        openScheduleModal(cell.dataset.managerId, cell.dataset.date);
+                    }
+                } else if(target.id === 'add-leave-btn') {
+                    openLeaveModal();
+                } else if(target.id === 'prev-month-btn') {
+                    appState.calendarDate.setMonth(appState.calendarDate.getMonth() - 1);
+                    loadPlottedLeavesForMonth();
+                } else if(target.id === 'next-month-btn') {
+                    appState.calendarDate.setMonth(appState.calendarDate.getMonth() + 1);
+                    loadPlottedLeavesForMonth();
+                }
+            }
+
+            function handleAdminClicks(e) {
+                const target = e.target;
+                const id = target.dataset.id;
+                if(!id) return;
+
+                if (target.classList.contains('delete-user-btn')) {
+                    if (confirm('Are you sure? This is for the database entry, not Firebase Auth user.')) {
+                        db.collection('users').doc(id).delete()
+                            .then(() => { showToast('User record deleted.', 'success'); loadInitialData(); })
+                            .catch(err => showToast('Error deleting user record.', 'error'));
+                    }
+                } else if (target.classList.contains('user-access-level-select')) {
+                    const newLevel = parseInt(target.value);
+                    db.collection('users').doc(id).update({ access_level: newLevel })
+                        .then(() => showToast('Access level updated.', 'success'))
+                        .catch(err => showToast('Error updating access level.', 'error'));
+                }
+            }
+            
+            function handleScheduleModalClicks(e) {
+                const target = e.target;
+                if(target.id === 'modal-cancel-btn') {
+                    document.getElementById('schedule-modal').classList.add('hidden');
+                } else if (target.id === 'modal-save-btn') {
+                    saveScheduleFromModal();
+                } else if (target.id === 'modal-delete-btn') {
+                    clearScheduleFromModal();
+                }
+            }
+
+            function handleLeaveModalClicks(e) {
+                const target = e.target;
+                if(target.id === 'leave-cancel-btn') {
+                    document.getElementById('leave-modal').classList.add('hidden');
+                } else if (target.id === 'leave-save-btn') {
+                    saveLeaveFromModal();
+                }
+            }
+
+            function openScheduleModal(managerId, date) {
+                const modal = document.getElementById('schedule-modal');
+                const manager = appState.managers.find(m => m.id === managerId);
+                if(!modal || !manager) return;
+
+                modal.dataset.managerId = managerId;
+                modal.dataset.date = date;
+
+                document.getElementById('modal-title').textContent = `Edit Schedule for ${manager.name} on ${new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })}`;
+                
+                const shiftSelect = document.getElementById('modal-shift-select');
+                const timeInput = document.getElementById('modal-time-input');
+                const timeContainer = document.getElementById('modal-time-container');
+                const shiftOptions = ["", "Open SL", "Open SM", "Mid SM", "Close SL", "Close SM", "GY", "Scheduling", "VL", "HL", "SL", "OFF", "Ordering", "People Day", "MDP", "Pull-out", "Marketing", "Store Day", "Travel", "Class", "Payroll", "Inventory", "Meeting", "Leave"];
+                shiftSelect.innerHTML = shiftOptions.map(o => `<option value="${o}">${o}</option>`).join('');
+
+                const scheduleData = appState.managerSchedules[`${managerId}_${date}`] || { shift: '', time: '' };
+                shiftSelect.value = scheduleData.shift;
+                timeInput.value = scheduleData.time;
+                timeContainer.style.display = ['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(scheduleData.shift) ? 'none' : 'block';
+                
+                modal.classList.remove('hidden');
+            }
+
+            async function saveScheduleFromModal() {
+                const modal = document.getElementById('schedule-modal');
+                const { managerId, date } = modal.dataset;
+                const shift = document.getElementById('modal-shift-select').value;
+                const time = document.getElementById('modal-time-input').value;
+
+                const scheduleKey = `${managerId}_${date}`;
+                const weekKey = getWeekDateStrings(new Date(date + 'T00:00:00'))[0];
+                const scheduleData = { shift, time: ['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(shift) ? '' : time };
+
+                try {
+                    await db.collection("manager_schedules").doc(weekKey).set({ [scheduleKey]: scheduleData }, { merge: true });
+                    showToast("Schedule saved!", "success");
+                    appState.managerSchedules[scheduleKey] = scheduleData;
+                    renderWeeklySchedule();
+                    renderShiftSchedule();
+                    modal.classList.add('hidden');
+                } catch (error) { showToast("Failed to save schedule.", "error"); }
+            }
+
+            async function clearScheduleFromModal() {
+                const modal = document.getElementById('schedule-modal');
+                const { managerId, date } = modal.dataset;
+                const scheduleKey = `${managerId}_${date}`;
+                const weekKey = getWeekDateStrings(new Date(date + 'T00:00:00'))[0];
+                
+                try {
+                    await db.collection("manager_schedules").doc(weekKey).update({
+                        [scheduleKey]: firebase.firestore.FieldValue.delete()
+                    });
+                    showToast("Schedule cleared!", "success");
+                    delete appState.managerSchedules[scheduleKey];
+                    renderWeeklySchedule();
+                    renderShiftSchedule();
+                    modal.classList.add('hidden');
+                } catch (error) { showToast("Failed to clear schedule.", "error"); }
+            }
+            
+            function openLeaveModal(date = null) {
+                const modal = document.getElementById('leave-modal');
+                const managerSelect = document.getElementById('leave-manager-select');
+                const startDateInput = document.getElementById('leave-start-date');
+                const endDateInput = document.getElementById('leave-end-date');
+
+                managerSelect.innerHTML = appState.managers.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                
+                const selectedDate = date ? date : getLocalDateString(new Date());
+                startDateInput.value = selectedDate;
+                endDateInput.value = selectedDate;
+
+                modal.classList.remove('hidden');
+            }
+
+            async function saveLeaveFromModal() {
+                const managerId = document.getElementById('leave-manager-select').value;
+                const managerName = appState.managers.find(m => m.id === managerId)?.name;
+                const leaveType = document.getElementById('leave-type-select').value;
+                const startDate = document.getElementById('leave-start-date').value;
+                const endDate = document.getElementById('leave-end-date').value;
+
+                if (!managerId || !startDate || !endDate) return showToast("Please fill all fields.", "error");
+
+                try {
+                    await db.collection('plotted_leaves').add({
+                        managerId, managerName, leaveType, startDate, endDate,
+                        year: new Date(startDate).getFullYear()
+                    });
+                    showToast("Leave plotted successfully!", "success");
+                    document.getElementById('leave-modal').classList.add('hidden');
+                    loadPlottedLeavesForMonth();
+                } catch (error) { showToast("Failed to plot leave.", "error"); }
+            }
+
+            // --- AUTHENTICATION FLOW ---
+            UI.loginForm?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = UI.loginForm.email.value;
+                const password = UI.loginForm.password.value;
+                UI.loginError.textContent = '';
                 auth.signInWithEmailAndPassword(email, password)
                     .catch(error => {
-                        console.error("Login Error:", error);
-                        loginError.textContent = "Invalid username or password.";
+                        UI.loginError.textContent = "Invalid username or password.";
                     });
-            });
-            
-            logoutBtn?.addEventListener('click', () => {
-                auth.signOut();
             });
 
             auth.onAuthStateChanged(async user => {
                 if (user) {
-                    loginScreen.style.display = 'none';
-                    appContainer.style.display = 'flex';
-                    loadingOverlay.style.display = 'flex';
+                    UI.loginScreen.style.display = 'none';
+                    UI.appContainer.style.display = 'flex';
+                    UI.loadingOverlay.style.display = 'flex';
                     
-                    document.getElementById('user-greeting').textContent = `Welcome, ${user.email.split('@')[0]}`;
-                    
-                    document.querySelector('button[data-view="admin"]')?.classList.remove('hidden');
-                    document.querySelector('#mobile-nav button[data-view="admin"]')?.classList.remove('hidden');
-
-                    await loadAppData(); 
-                    setupAppEventListeners();
-                    if(appState.historicalData) {
-                        setupHistoricalFilters();
-                        setupActivityFilters();
+                    const userDoc = await db.collection('users').where('username', '==', user.email).limit(1).get();
+                    if (!userDoc.empty) {
+                        appState.accessLevel = userDoc.docs[0].data().access_level || 3;
+                    } else {
+                        appState.accessLevel = 3;
                     }
                     
-                    const weekPicker = document.getElementById('week-picker');
-                    if(weekPicker) weekPicker.value = getLocalDateString(new Date());
-
-                    // Load initial data for schedule tabs
-                    const initialWeekDates = getWeekDateStrings(new Date());
-                    loadScheduleForWeek(initialWeekDates);
-                    loadPlottedLeavesForMonth();
-
-
+                    UI.userGreeting.textContent = `Welcome, ${user.email.split('@')[0]}`;
+                    await loadInitialData();
+                    
                 } else {
-                    loginScreen.style.display = 'flex';
-                    appContainer.style.display = 'none';
-                    loadingOverlay.style.display = 'none';
+                    UI.loginScreen.style.display = 'flex';
+                    UI.appContainer.style.display = 'none';
+                    UI.loadingOverlay.style.display = 'none';
+                    appState.accessLevel = 3;
                 }
             });
+
+            // --- INITIALIZE APP ---
+            setupAllEventListeners();
         });
     </script>
 
