@@ -181,6 +181,10 @@
         .leave-vl { background-color: #3b82f6; }
         .leave-hl { background-color: #10b981; }
         .leave-sl { background-color: #f59e0b; }
+        .planned-leave-cell {
+            border: 2px dashed #a5b4fc;
+            background-color: #f0f2ff;
+        }
         .view-only-hard {
             pointer-events: none !important;
             opacity: 0.6 !important;
@@ -499,11 +503,28 @@
                         <form id="activity-form" class="space-y-4">
                              <div>
                                 <label for="activity-name" class="block font-semibold mb-1">Activity Name</label>
-                                <input type="text" id="activity-name" placeholder="e.g., Catering for Birthday" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                <select id="activity-name" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                    <option>BP</option>
+                                    <option>LFO</option>
+                                    <option>Funday</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="event-venue" class="block font-semibold mb-1">Event Venue</label>
+                                <select id="event-venue" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                    <option>In-Store</option>
+                                    <option>Take-out</option>
+                                    <option>Pick-up</option>
+                                    <option>Delivery</option>
+                                </select>
                             </div>
                             <div>
                                 <label for="customer-name" class="block font-semibold mb-1">Customer Name</label>
                                 <input type="text" id="customer-name" placeholder="e.g., John Doe" class="w-full p-2 rounded-lg border-2 border-gray-200">
+                            </div>
+                            <div>
+                                <label for="contact-number" class="block font-semibold mb-1">Contact Number</label>
+                                <input type="tel" id="contact-number" placeholder="e.g., 09123456789" class="w-full p-2 rounded-lg border-2 border-gray-200">
                             </div>
                              <div class="grid grid-cols-2 gap-4">
                                 <div>
@@ -511,17 +532,51 @@
                                     <input type="date" id="activity-date" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
                                 </div>
                                 <div>
+                                    <label for="activity-time" class="block font-semibold mb-1">Time</label>
+                                    <div class="flex">
+                                        <input type="text" id="activity-time" placeholder="e.g., 10:30" class="w-full p-2 rounded-l-lg border-2 border-r-0 border-gray-200">
+                                        <select id="activity-ampm" class="p-2 rounded-r-lg border-2 border-l-0 border-gray-200 bg-gray-50">
+                                            <option>AM</option>
+                                            <option>PM</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
                                     <label for="activity-sales" class="block font-semibold mb-1">Est. Sales (₱)</label>
                                     <input type="number" step="0.01" id="activity-sales" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
                                 </div>
+                                <div>
+                                    <label for="activity-status" class="block font-semibold mb-1">Status</label>
+                                    <select id="activity-status" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                        <option>Confirmed</option>
+                                        <option>Needs Follow-up</option>
+                                        <option>Tentative</option>
+                                        <option>Cancelled</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="for-follow-up" class="block font-semibold mb-1">For Follow-up</label>
+                                <input type="text" id="for-follow-up" list="follow-up-options" class="w-full p-2 rounded-lg border-2 border-gray-200">
+                                <datalist id="follow-up-options">
+                                    <option value="time"></option>
+                                    <option value="food"></option>
+                                    <option value="pax"></option>
+                                </datalist>
                             </div>
                              <div>
-                                <label for="activity-status" class="block font-semibold mb-1">Status</label>
-                                <select id="activity-status" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
-                                    <option>Confirmed</option>
-                                    <option>Needs Follow-up</option>
-                                    <option>Tentative</option>
-                                    <option>Cancelled</option>
+                                <label for="handled-by" class="block font-semibold mb-1">Handled by</label>
+                                <input type="text" id="handled-by" class="w-full p-2 rounded-lg border-2 border-gray-200">
+                            </div>
+                             <div>
+                                <label for="character" class="block font-semibold mb-1">Character</label>
+                                <select id="character" class="w-full p-2 rounded-lg border-2 border-gray-200">
+                                    <option>None</option>
+                                    <option>1</option>
+                                    <option>2</option>
+                                    <option>Full</option>
                                 </select>
                             </div>
                             <button type="submit" class="w-full bg-gray-800 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-900 transition duration-300">Save Activity</button>
@@ -656,14 +711,13 @@
                 <button id="confirm-modal-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-300">
                     Cancel
                 </button>
-                <button id="confirm-modal-confirm-btn" class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700">
+                <button id="confirm-modal-confirm-btn" class="w-full px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700">
                     Confirm
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- ****** FULLY IMPLEMENTED SCRIPT WITH EVALUATOR FIX ****** -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             
@@ -781,7 +835,6 @@
 
             // --- DATA LOADING ---
             async function loadInitialData() {
-                UI.loadingOverlay.style.display = 'flex';
                 UI.loadingText.textContent = 'Loading All Application Data...';
                 
                 try {
@@ -821,10 +874,8 @@
                     setupDynamicContent();
 
                 } catch (error) {
-                    console.error("Firebase Error:", error);
+                    console.error("Firebase Error during initial data load:", error);
                     showToast("Error loading application data. Some features may not work.", "error");
-                } finally {
-                    UI.loadingOverlay.style.display = 'none';
                 }
             }
 
@@ -1204,10 +1255,36 @@
                         tbody += `<tr><td class="font-semibold px-2 text-left">${manager.name}</td>`;
                         weekDates.forEach(date => {
                             const scheduleKey = `${manager.id}_${date}`;
-                            const scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
+                            let scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
+                            let isPlanned = false;
+                            let cellClass = '';
+
+                            // *** LOGIC FIX: Check for planned leaves if no confirmed schedule exists ***
+                            if (!scheduleData.shift) {
+                                const plannedLeave = appState.plottedLeaves.find(leave => {
+                                    const leaveStart = createUTCDate(leave.startDate);
+                                    const leaveEnd = createUTCDate(leave.endDate);
+                                    const currentDate = createUTCDate(date);
+                                    return leave.managerId === manager.id && currentDate >= leaveStart && currentDate <= leaveEnd;
+                                });
+
+                                if (plannedLeave) {
+                                    scheduleData = { shift: plannedLeave.leaveType, time: 'Planned' };
+                                    isPlanned = true;
+                                    cellClass = 'planned-leave-cell'; // Add class for styling
+                                }
+                            }
+
                             let offClass = scheduleData.shift === 'OFF' ? 'text-red-500' : '';
-                            let cellContent = scheduleData.shift ? `<div class="text-sm"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-gray-500 text-xs">${scheduleData.time || ''}</p></div>` : '<span class="text-2xl font-light text-gray-400">+</span>';
-                            tbody += `<td class="p-1"><div class="schedule-cell" data-manager-id="${manager.id}" data-date="${date}">${cellContent}</div></td>`;
+                            let plannedStyle = isPlanned ? 'text-gray-500 italic' : '';
+                            let cellContent;
+
+                            if (scheduleData.shift) {
+                                cellContent = `<div class="text-sm ${plannedStyle}"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-xs">${scheduleData.time || ''}</p></div>`;
+                            } else {
+                                cellContent = '<span class="text-2xl font-light text-gray-400">+</span>';
+                            }
+                            tbody += `<td class="p-1 ${cellClass}"><div class="schedule-cell" data-manager-id="${manager.id}" data-date="${date}">${cellContent}</div></td>`;
                         });
                         tbody += '</tr>';
                     });
@@ -1216,14 +1293,30 @@
 
                 let mobileHTML = '';
                 if (appState.managers.length > 0) {
-                    weekDates.forEach((date, i) => {
+                     weekDates.forEach((date, i) => {
                         const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
                         mobileHTML += `<div class="bg-white rounded-lg shadow p-4 mt-4"><h4 class="font-bold text-lg mb-2 border-b pb-2">${days[i]} - ${formattedDate}</h4><div class="space-y-2">`;
                         appState.managers.forEach(manager => {
                             const scheduleKey = `${manager.id}_${date}`;
-                            const scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
+                            let scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
+                            let isPlanned = false;
+                            
+                            if (!scheduleData.shift) {
+                                const plannedLeave = appState.plottedLeaves.find(leave => {
+                                    const leaveStart = createUTCDate(leave.startDate);
+                                    const leaveEnd = createUTCDate(leave.endDate);
+                                    const currentDate = createUTCDate(date);
+                                    return leave.managerId === manager.id && currentDate >= leaveStart && currentDate <= leaveEnd;
+                                });
+                                if (plannedLeave) {
+                                    scheduleData = { shift: plannedLeave.leaveType, time: 'Planned' };
+                                    isPlanned = true;
+                                }
+                            }
+
                             let offClass = scheduleData.shift === 'OFF' ? 'text-red-500' : '';
-                            let shiftContent = scheduleData.shift ? `<div class="text-right"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-gray-500 text-xs">${scheduleData.time || ''}</p></div>` : '<span class="text-xl font-light text-gray-400">+</span>';
+                            let plannedStyle = isPlanned ? 'text-gray-500 italic' : '';
+                            let shiftContent = scheduleData.shift ? `<div class="text-right ${plannedStyle}"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-gray-500 text-xs">${scheduleData.time || ''}</p></div>` : '<span class="text-xl font-light text-gray-400">+</span>';
                             mobileHTML += `<div class="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 schedule-cell" data-manager-id="${manager.id}" data-date="${date}"><p class="font-medium">${manager.name}</p>${shiftContent}</div>`;
                         });
                         mobileHTML += `</div></div>`;
@@ -1346,36 +1439,53 @@
                 const container = document.getElementById('leave-records-container');
                 if (!container) return;
                 container.innerHTML = '<p class="text-gray-500 text-center py-4">Loading leave records...</p>';
+                
                 try {
-                    const snapshot = await db.collection('plotted_leaves').get();
-                    const leaves = snapshot.docs.map(doc => doc.data());
+                    const plottedLeavesSnapshot = await db.collection('plotted_leaves').get();
+                    const allPlottedLeaves = plottedLeavesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                    
+                    const scheduleSnapshots = await db.collection('manager_schedules').get();
+                    const allSchedules = scheduleSnapshots.docs.reduce((acc, doc) => {
+                        return { ...acc, ...doc.data() };
+                    }, {});
 
                     const leaveSummary = {};
 
-                    appState.managers.forEach(manager => {
-                        leaveSummary[manager.name] = { VL: 0, HL: 0, SL: 0 };
-                    });
+                    // *** LOGIC FIX: Iterate through plotted leaves and check against confirmed schedules ***
+                    allPlottedLeaves.forEach(leave => {
+                        const start = createUTCDate(leave.startDate);
+                        const end = createUTCDate(leave.endDate);
 
-                    leaves.forEach(leave => {
-                        if (leaveSummary[leave.managerName]) {
-                            const start = createUTCDate(leave.startDate);
-                            const end = createUTCDate(leave.endDate);
-                            let count = 0;
-                            for (let d = start; d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
-                                count++;
+                        for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+                            const dateStr = getLocalDateString(d);
+                            const scheduleKey = `${leave.managerId}_${dateStr}`;
+                            
+                            // This is the consumption check: is the leave confirmed in the schedule?
+                            if (allSchedules[scheduleKey] && allSchedules[scheduleKey].shift === leave.leaveType) {
+                                if (!leaveSummary[leave.managerName]) {
+                                    leaveSummary[leave.managerName] = { VL: 0, HL: 0, SL: 0 };
+                                }
+                                if(!leaveSummary[leave.managerName][leave.leaveType]) {
+                                    leaveSummary[leave.managerName][leave.leaveType] = 0;
+                                }
+                                leaveSummary[leave.managerName][leave.leaveType]++;
                             }
-                            leaveSummary[leave.managerName][leave.leaveType] += count;
                         }
                     });
 
                     if (Object.keys(leaveSummary).length === 0) {
-                        container.innerHTML = '<p class="text-gray-500 text-center py-4">No leave records found.</p>';
+                        container.innerHTML = '<p class="text-gray-500 text-center py-4">No consumed leave records found.</p>';
                         return;
                     }
 
                     let content = '';
-                    for (const managerName in leaveSummary) {
-                        const { VL, HL, SL } = leaveSummary[managerName];
+                    const sortedManagerNames = Object.keys(leaveSummary).sort();
+
+                    for (const managerName of sortedManagerNames) {
+                        const counts = leaveSummary[managerName];
+                        const VL = counts.VL || 0;
+                        const HL = counts.HL || 0;
+                        const SL = counts.SL || 0;
                         content += `
                             <div class="bg-gray-50 p-4 rounded-lg">
                                 <h4 class="font-bold text-lg">${managerName}</h4>
@@ -1468,42 +1578,113 @@
                     displayMonth(sortedMonthKeys[0]);
                 }
             }
-
+            
             function createActivityCard(activity) {
                 const date = activity.date.toDate();
                 const card = document.createElement('div');
                 card.className = 'bg-white p-4 rounded-lg shadow border';
+                
+                const timeParts = (activity.activity_time || " AM").split(" ");
+                const time = timeParts[0];
+                const ampm = timeParts[1] || "AM";
+
                 card.innerHTML = `
                     <div id="view-activity-${activity.id}">
                         <div class="flex justify-between items-center">
                             <div>
                                 <p class="font-bold text-lg">${activity.activity_name}</p>
-                                <p class="text-gray-600">${date.toLocaleDateString('en-US', { dateStyle: 'full' })}</p>
+                                <p class="text-gray-600">${date.toLocaleDateString('en-US', { dateStyle: 'full' })} at ${activity.activity_time || 'N/A'}</p>
                             </div>
                             <div>
                                 <button data-id="${activity.id}" class="edit-activity-btn text-blue-500 hover:text-blue-700 font-semibold mr-4">Edit</button>
                                 <button data-id="${activity.id}" class="delete-activity-btn text-red-500 hover:text-red-700 font-semibold">Delete</button>
                             </div>
                         </div>
-                        <div class="mt-2 grid grid-cols-2 gap-2 text-sm">
+                        <div class="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                            <p><strong>Venue:</strong> ${activity.event_venue || 'N/A'}</p>
+                            <p><strong>Customer:</strong> ${activity.customer_name || 'N/A'}</p>
+                            <p><strong>Contact:</strong> ${activity.contact_number || 'N/A'}</p>
                             <p><strong>Est. Sales:</strong> ₱${(activity.potential_sales || 0).toLocaleString()}</p>
                             <p><strong>Status:</strong> ${activity.remarks || 'N/A'}</p>
-                            <p><strong>Customer:</strong> ${activity.customer_name || 'N/A'}</p>
+                            <p><strong>Follow-up:</strong> ${activity.for_follow_up || 'N/A'}</p>
+                            <p><strong>Handled by:</strong> ${activity.handled_by || 'N/A'}</p>
+                            <p><strong>Character:</strong> ${activity.character || 'N/A'}</p>
                         </div>
                     </div>
-                    <form id="edit-form-activity-${activity.id}" class="hidden space-y-2 mt-4">
-                        <input type="text" value="${activity.activity_name}" class="w-full p-2 border rounded" placeholder="Activity Name">
-                        <input type="text" value="${activity.customer_name || ''}" class="w-full p-2 border rounded" placeholder="Customer Name">
-                        <input type="date" value="${date.toISOString().split('T')[0]}" class="w-full p-2 border rounded">
-                        <input type="number" value="${activity.potential_sales}" class="w-full p-2 border rounded" placeholder="Potential Sales">
-                        <select class="w-full p-2 border rounded">
-                            <option ${activity.remarks === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
-                            <option ${activity.remarks === 'Needs Follow-up' ? 'selected' : ''}>Needs Follow-up</option>
-                            <option ${activity.remarks === 'Tentative' ? 'selected' : ''}>Tentative</option>
-                            <option ${activity.remarks === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
-                        </select>
+                    <form id="edit-form-activity-${activity.id}" class="hidden space-y-4 mt-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-semibold mb-1 text-sm">Activity Name</label>
+                                <select class="w-full p-2 border rounded edit-activity-name">
+                                    <option ${activity.activity_name === 'BP' ? 'selected' : ''}>BP</option>
+                                    <option ${activity.activity_name === 'LFO' ? 'selected' : ''}>LFO</option>
+                                    <option ${activity.activity_name === 'Funday' ? 'selected' : ''}>Funday</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-sm">Event Venue</label>
+                                <select class="w-full p-2 border rounded edit-event-venue">
+                                    <option ${activity.event_venue === 'In-Store' ? 'selected' : ''}>In-Store</option>
+                                    <option ${activity.event_venue === 'Take-out' ? 'selected' : ''}>Take-out</option>
+                                    <option ${activity.event_venue === 'Pick-up' ? 'selected' : ''}>Pick-up</option>
+                                    <option ${activity.event_venue === 'Delivery' ? 'selected' : ''}>Delivery</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-sm">Customer Name</label>
+                                <input type="text" value="${activity.customer_name || ''}" class="w-full p-2 border rounded edit-customer-name">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-sm">Contact Number</label>
+                                <input type="tel" value="${activity.contact_number || ''}" class="w-full p-2 border rounded edit-contact-number">
+                            </div>
+                             <div>
+                                <label class="block font-semibold mb-1 text-sm">Date</label>
+                                <input type="date" value="${getLocalDateString(date)}" class="w-full p-2 border rounded edit-activity-date">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-sm">Time</label>
+                                <div class="flex">
+                                    <input type="text" value="${time}" class="w-full p-2 border rounded-l-lg edit-activity-time">
+                                    <select class="p-2 border rounded-r-lg bg-gray-50 edit-activity-ampm">
+                                        <option ${ampm === 'AM' ? 'selected' : ''}>AM</option>
+                                        <option ${ampm === 'PM' ? 'selected' : ''}>PM</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-sm">Est. Sales (₱)</label>
+                                <input type="number" step="0.01" value="${activity.potential_sales || 0}" class="w-full p-2 border rounded edit-activity-sales">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-sm">Status</label>
+                                <select class="w-full p-2 border rounded edit-activity-status">
+                                    <option ${activity.remarks === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                                    <option ${activity.remarks === 'Needs Follow-up' ? 'selected' : ''}>Needs Follow-up</option>
+                                    <option ${activity.remarks === 'Tentative' ? 'selected' : ''}>Tentative</option>
+                                    <option ${activity.remarks === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-sm">For Follow-up</label>
+                                <input type="text" value="${activity.for_follow_up || ''}" class="w-full p-2 border rounded edit-for-follow-up">
+                            </div>
+                             <div>
+                                <label class="block font-semibold mb-1 text-sm">Handled by</label>
+                                <input type="text" value="${activity.handled_by || ''}" class="w-full p-2 border rounded edit-handled-by">
+                            </div>
+                             <div>
+                                <label class="block font-semibold mb-1 text-sm">Character</label>
+                                <select class="w-full p-2 border rounded edit-character">
+                                    <option ${activity.character === 'None' ? 'selected' : ''}>None</option>
+                                    <option ${activity.character === '1' ? 'selected' : ''}>1</option>
+                                    <option ${activity.character === '2' ? 'selected' : ''}>2</option>
+                                    <option ${activity.character === 'Full' ? 'selected' : ''}>Full</option>
+                                </select>
+                            </div>
+                        </div>
                         <div class="flex space-x-2">
-                            <button type="button" data-id="${activity.id}" class="update-activity-btn w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg">Save</button>
+                            <button type="button" data-id="${activity.id}" class="update-activity-btn w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg">Save Changes</button>
                             <button type="button" data-id="${activity.id}" class="cancel-edit-activity-btn w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
                         </div>
                     </form>
@@ -1732,10 +1913,16 @@
                 const form = e.target;
                 const data = {
                     activity_name: form['activity-name'].value,
+                    event_venue: form['event-venue'].value,
                     customer_name: form['customer-name'].value,
+                    contact_number: form['contact-number'].value,
                     date: firebase.firestore.Timestamp.fromDate(createUTCDate(form['activity-date'].value)),
+                    activity_time: `${form['activity-time'].value} ${form['activity-ampm'].value}`,
                     potential_sales: parseFloat(form['activity-sales'].value),
                     remarks: form['activity-status'].value,
+                    for_follow_up: form['for-follow-up'].value,
+                    handled_by: form['handled-by'].value,
+                    character: form['character'].value
                 };
                 if (!data.activity_name || !data.date || isNaN(data.potential_sales)) return showToast("Please fill all required fields.", "error");
 
@@ -1795,7 +1982,7 @@
                         .catch(err => showToast('Error updating record.', 'error'));
                 }
             }
-
+            
             function handleActivityListClicks(e) {
                 const target = e.target;
                 const id = target.closest('[data-id]')?.dataset.id;
@@ -1817,11 +2004,21 @@
                             .catch(err => showToast('Error deleting activity.', 'error'));
                     });
                 } else if (target.closest('.update-activity-btn')) {
-                    const [name, customer, date, sales, status] = editForm.elements;
+                    const form = target.closest('form');
+                    const time = form.querySelector('.edit-activity-time').value;
+                    const ampm = form.querySelector('.edit-activity-ampm').value;
                     const data = {
-                        activity_name: name.value, customer_name: customer.value,
-                        date: firebase.firestore.Timestamp.fromDate(createUTCDate(date.value)),
-                        potential_sales: parseFloat(sales.value), remarks: status.value
+                        activity_name: form.querySelector('.edit-activity-name').value,
+                        event_venue: form.querySelector('.edit-event-venue').value,
+                        customer_name: form.querySelector('.edit-customer-name').value,
+                        contact_number: form.querySelector('.edit-contact-number').value,
+                        date: firebase.firestore.Timestamp.fromDate(createUTCDate(form.querySelector('.edit-activity-date').value)),
+                        activity_time: `${time} ${ampm}`,
+                        potential_sales: parseFloat(form.querySelector('.edit-activity-sales').value),
+                        remarks: form.querySelector('.edit-activity-status').value,
+                        for_follow_up: form.querySelector('.edit-for-follow-up').value,
+                        handled_by: form.querySelector('.edit-handled-by').value,
+                        character: form.querySelector('.edit-character').value,
                     };
                     db.collection('future_activities').doc(id).update(data)
                         .then(() => { showToast('Activity updated.', 'success'); loadInitialData(); })
@@ -1927,7 +2124,21 @@
                 const shiftOptions = ["", "Open SL", "Open SM", "Mid SM", "Close SL", "Close SM", "GY", "Scheduling", "VL", "HL", "SL", "OFF", "Ordering", "People Day", "MDP", "Pull-out", "Marketing", "Store Day", "Travel", "Class", "Payroll", "Inventory", "Meeting", "Leave"];
                 shiftSelect.innerHTML = shiftOptions.map(o => `<option value="${o}">${o}</option>`).join('');
 
-                const scheduleData = appState.managerSchedules[`${managerId}_${date}`] || { shift: '', time: '' };
+                let scheduleData = appState.managerSchedules[`${managerId}_${date}`] || { shift: '', time: '' };
+
+                // *** LOGIC FIX: Pre-fill modal with planned leave data if it exists ***
+                if (!scheduleData.shift) {
+                    const plannedLeave = appState.plottedLeaves.find(leave => {
+                        const leaveStart = createUTCDate(leave.startDate);
+                        const leaveEnd = createUTCDate(leave.endDate);
+                        const currentDate = createUTCDate(date);
+                        return leave.managerId === managerId && currentDate >= leaveStart && currentDate <= leaveEnd;
+                    });
+                    if (plannedLeave) {
+                        scheduleData = { shift: plannedLeave.leaveType, time: '' };
+                    }
+                }
+
                 shiftSelect.value = scheduleData.shift;
                 timeInput.value = scheduleData.time;
                 
@@ -1941,7 +2152,7 @@
                 const { managerId, date } = modal.dataset;
                 const shift = document.getElementById('modal-shift-select').value;
                 const time = document.getElementById('modal-time-input').value;
-
+                
                 const scheduleKey = `${managerId}_${date}`;
                 const weekKey = getWeekDateStrings(new Date(date + 'T00:00:00'))[0];
                 const scheduleData = { shift, time: ['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(shift) ? '' : time };
@@ -1966,6 +2177,7 @@
                     await db.collection("manager_schedules").doc(weekKey).update({
                         [scheduleKey]: firebase.firestore.FieldValue.delete()
                     });
+
                     showToast("Schedule cleared!", "success");
                     delete appState.managerSchedules[scheduleKey];
                     renderWeeklySchedule();
@@ -2026,18 +2238,14 @@
 
                 try {
                     if (leaveId) {
-                        const oldLeaveData = appState.plottedLeaves.find(l => l.id === leaveId);
                         await db.collection('plotted_leaves').doc(leaveId).update(leaveData);
-                        await clearScheduleForLeave(oldLeaveData);
                     } else {
                         await db.collection('plotted_leaves').add(leaveData);
                     }
-
-                    await setScheduleForLeave(leaveData);
                     
                     showToast(`Leave ${leaveId ? 'updated' : 'plotted'} successfully!`, "success");
                     modal.classList.add('hidden');
-                    loadInitialData();
+                    loadInitialData(); // Reload to show new planned leave
                 } catch (error) {
                     console.error("Error saving leave:", error);
                     showToast("Failed to save leave.", "error");
@@ -2049,13 +2257,10 @@
                 const leaveId = modal.dataset.leaveId;
                 if (!leaveId) return;
                 
-                showConfirm("Are you sure you want to delete this leave?", async () => {
+                showConfirm("Are you sure you want to delete this planned leave?", async () => {
                     try {
-                        const leaveData = appState.plottedLeaves.find(l => l.id === leaveId);
                         await db.collection('plotted_leaves').doc(leaveId).delete();
-                        await clearScheduleForLeave(leaveData);
-                        
-                        showToast("Leave deleted successfully!", "success");
+                        showToast("Planned leave deleted successfully!", "success");
                         modal.classList.add('hidden');
                         loadInitialData();
                     } catch (error) {
@@ -2063,31 +2268,6 @@
                         showToast("Failed to delete leave.", "error");
                     }
                 });
-            }
-
-            async function setScheduleForLeave(leaveData) {
-                const start = createUTCDate(leaveData.startDate);
-                const end = createUTCDate(leaveData.endDate);
-                for (let d = start; d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
-                    const dateStr = getLocalDateString(d);
-                    const weekKey = getWeekDateStrings(d)[0];
-                    const scheduleKey = `${leaveData.managerId}_${dateStr}`;
-                    const scheduleData = { shift: leaveData.leaveType, time: '' };
-                    await db.collection("manager_schedules").doc(weekKey).set({ [scheduleKey]: scheduleData }, { merge: true });
-                }
-            }
-
-            async function clearScheduleForLeave(leaveData) {
-                const start = createUTCDate(leaveData.startDate);
-                const end = createUTCDate(leaveData.endDate);
-                for (let d = start; d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
-                    const dateStr = getLocalDateString(d);
-                    const weekKey = getWeekDateStrings(d)[0];
-                    const scheduleKey = `${leaveData.managerId}_${dateStr}`;
-                    await db.collection("manager_schedules").doc(weekKey).update({
-                        [scheduleKey]: firebase.firestore.FieldValue.delete()
-                    });
-                }
             }
 
             // --- AUTHENTICATION FLOW ---
@@ -2104,31 +2284,41 @@
 
             auth.onAuthStateChanged(async user => {
                 if (user) {
-                    UI.loginScreen.style.display = 'none';
-                    UI.appContainer.style.display = 'flex';
                     UI.loadingOverlay.style.display = 'flex';
+                    UI.loadingText.textContent = 'Authenticating...';
                     
-                    const userDocRef = db.collection('users').doc(user.uid);
-                    const userDoc = await userDocRef.get();
-                    
-                    if (userDoc.exists) {
-                        appState.accessLevel = userDoc.data().access_level || 3;
-                    } else {
-                        const newUser = {
-                            username: user.email,
-                            access_level: 3
-                        };
-                        await userDocRef.set(newUser);
-                        appState.accessLevel = 3; 
-                    }
+                    try {
+                        UI.loginScreen.style.display = 'none';
+                        UI.appContainer.style.display = 'flex';
+                        
+                        const userDocRef = db.collection('users').doc(user.uid);
+                        const userDoc = await userDocRef.get();
+                        
+                        if (userDoc.exists) {
+                            appState.accessLevel = userDoc.data().access_level || 3;
+                        } else {
+                            const newUser = {
+                                username: user.email,
+                                access_level: 3
+                            };
+                            await userDocRef.set(newUser);
+                            appState.accessLevel = 3; 
+                        }
 
-                    if (appState.accessLevel === 3) {
-                        appState.currentView = 'activities';
+                        if (appState.accessLevel === 3) {
+                            appState.currentView = 'activities';
+                        }
+                        
+                        UI.userGreeting.textContent = `Welcome, ${user.email.split('@')[0]}`;
+                        await loadInitialData();
+                        
+                    } catch (error) {
+                        console.error("Fatal error during login process:", error);
+                        showToast("A critical error occurred during login. Please try again.", "error");
+                        auth.signOut(); 
+                    } finally {
+                        UI.loadingOverlay.style.display = 'none';
                     }
-                    
-                    UI.userGreeting.textContent = `Welcome, ${user.email.split('@')[0]}`;
-                    await loadInitialData();
-                    
                 } else {
                     UI.loginScreen.style.display = 'flex';
                     UI.appContainer.style.display = 'none';
