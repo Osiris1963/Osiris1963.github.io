@@ -756,7 +756,8 @@
                         db.collection("users").get(),
                         db.collection("forecast_log").where("forecast_for_date", ">=", thirtyFiveDaysAgo).get(),
                         db.collection("historical_data").where("date", ">=", thirtyFiveDaysAgo).orderBy("date", "desc").get(),
-                        db.collection("managers").orderBy("name").get(),
+                        // *** PRECISE FIX: Sort managers by sortOrder field ***
+                        db.collection("managers").orderBy("sortOrder").get(),
                         db.collection("plotted_leaves").get()
                     ]);
 
@@ -1579,6 +1580,7 @@
                 document.getElementById('add-manager-form')?.addEventListener('submit', handleAddManager);
 
                 document.getElementById('content-area')?.addEventListener('click', handleContentAreaClicks);
+                document.getElementById('admin-section')?.addEventListener('change', handleAdminClicks); // *** FIX: Listen for CHANGE on admin section ***
                 document.getElementById('schedule-modal')?.addEventListener('click', handleScheduleModalClicks);
                 document.getElementById('leave-modal')?.addEventListener('click', handleLeaveModalClicks);
                 
@@ -1611,7 +1613,7 @@
                 if(target.closest('#historical-list')) handleHistoricalListClicks(e);
                 if(target.closest('#activity-content-container')) handleActivityListClicks(e);
                 if(target.closest('#manager-schedule-section')) handleManagerScheduleClicks(e);
-                if(target.closest('#admin-section')) handleAdminClicks(e);
+                if(target.closest('#admin-section') && e.type === 'click') handleAdminClicks(e); // Handle clicks separately
             }
 
             async function handleDailyRecordSave(e) {
@@ -2030,11 +2032,18 @@
                     UI.appContainer.style.display = 'flex';
                     UI.loadingOverlay.style.display = 'flex';
                     
-                    const userDoc = await db.collection('users').where('username', '==', user.email).limit(1).get();
-                    if (!userDoc.empty) {
-                        appState.accessLevel = userDoc.docs[0].data().access_level || 3;
+                    const userDocRef = db.collection('users').doc(user.uid);
+                    const userDoc = await userDocRef.get();
+                    
+                    if (userDoc.exists) {
+                        appState.accessLevel = userDoc.data().access_level || 3;
                     } else {
-                        appState.accessLevel = 3; // Default to most restrictive if no profile found
+                        const newUser = {
+                            username: user.email,
+                            access_level: 3 
+                        };
+                        await userDocRef.set(newUser);
+                        appState.accessLevel = 3; 
                     }
 
                     if (appState.accessLevel === 3) {
