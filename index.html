@@ -152,7 +152,7 @@
             background-color: #f8fafc;
         }
         .calendar-day {
-            min-height: 120px;
+            min-height: 100px;
             padding: 0.5rem;
             background-color: white;
             transition: background-color 0.2s;
@@ -367,7 +367,7 @@
             <section id="manager-schedule-section" class="view hidden">
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold mb-1">Manager Schedule</h2>
-                    <p class="text-gray-600">Plot daily shifts and track leaves for managers.</p>
+                    <p class="text-gray-600">Plot daily shifts and track leaves for managers. Planned leaves from the "HL & VL Schedule" will appear here with a dashed border; click to confirm them.</p>
                 </div>
                 <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
                     <div id="manager-schedule-tabs" class="border-b border-gray-200 mb-6">
@@ -376,7 +376,7 @@
                             <button data-tab="shift-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">Shift Schedule</button>
                             <button data-tab="leave-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">HL & VL Schedule</button>
                             <button data-tab="leave-tracking" class="schedule-tab whitespace-nowrap font-medium text-sm">Leave Tracking</button>
-                            <button data-tab="gy-ot-tracking" class="schedule-tab whitespace-nowrap font-medium text-sm">GY & OT</button>
+                            <button data-tab="gy-ot" class="schedule-tab whitespace-nowrap font-medium text-sm">GY & OT</button>
                             <button data-tab="manage-managers" class="schedule-tab whitespace-nowrap font-medium text-sm">Manage Managers</button>
                         </nav>
                     </div>
@@ -412,17 +412,20 @@
                     </div>
 
                     <div id="leave-tracking-content" class="schedule-content hidden">
-                        <h3 class="text-xl font-bold mb-4">Manager Leave Summary</h3>
+                        <h3 class="text-xl font-bold mb-4">Manager Leave Summary (Consumed)</h3>
+                        <p class="text-sm text-gray-500 mb-4">This tab shows leaves that have been confirmed in the Weekly Schedule.</p>
                         <div id="leave-records-container" class="space-y-4"></div>
                     </div>
 
-                    <div id="gy-ot-tracking-content" class="schedule-content hidden">
-                        <h3 class="text-xl font-bold mb-4">Graveyard & Overtime Summary</h3>
-                        <div class="flex items-center space-x-4 mb-4">
-                            <label for="gy-ot-month-picker" class="font-semibold">Select Month:</label>
-                            <input type="month" id="gy-ot-month-picker" class="p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                    <div id="gy-ot-content" class="schedule-content hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center space-x-2">
+                                <button id="gy-ot-prev-month-btn" class="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300">&lt;</button>
+                                <h3 id="gy-ot-month-year" class="text-xl font-bold text-center w-48"></h3>
+                                <button id="gy-ot-next-month-btn" class="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300">&gt;</button>
+                            </div>
                         </div>
-                        <div id="gy-ot-summary-container"></div>
+                        <div id="gy-ot-records-container" class="space-y-6"></div>
                     </div>
 
                     <div id="manage-managers-content" class="schedule-content hidden">
@@ -728,6 +731,7 @@
         </div>
     </div>
 
+    <!-- ****** FULLY IMPLEMENTED SCRIPT WITH ALL FIXES ****** -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             
@@ -884,8 +888,10 @@
                     setupDynamicContent();
 
                 } catch (error) {
-                    console.error("Firebase Error during initial data load:", error);
+                    console.error("Firebase Error:", error);
                     showToast("Error loading application data. Some features may not work.", "error");
+                } finally {
+                    UI.loadingOverlay.style.display = 'none';
                 }
             }
 
@@ -994,12 +1000,6 @@
                 setupActivityFilters();
                 const weekPicker = document.getElementById('week-picker');
                 if (weekPicker) weekPicker.value = getLocalDateString(new Date());
-
-                const gyOtMonthPicker = document.getElementById('gy-ot-month-picker');
-                if (gyOtMonthPicker) {
-                    const today = new Date();
-                    gyOtMonthPicker.value = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
-                }
             }
 
             // --- ACCESS CONTROL ---
@@ -1016,7 +1016,7 @@
                 const level = appState.accessLevel;
 
                 if (level === 1) { // Admin
-                    // No restrictions
+                    document.querySelector('button[data-view="admin"]')?.classList.remove('hidden');
                 } else if (level === 2) { // Manager
                     document.querySelectorAll('button[data-view="admin"]').forEach(btn => btn.style.display = 'none');
                     if (scheduleSection) {
@@ -1209,8 +1209,8 @@
                     case 'leave-tracking':
                         loadAndRenderLeaveTracking();
                         break;
-                    case 'gy-ot-tracking':
-                        loadAndRenderGyOtSummary();
+                    case 'gy-ot':
+                        renderGyOtTracking();
                         break;
                     case 'manage-managers':
                         renderManagerList();
@@ -1295,13 +1295,7 @@
 
                             let offClass = scheduleData.shift === 'OFF' ? 'text-red-500' : '';
                             let plannedStyle = isPlanned ? 'text-gray-500 italic' : '';
-                            let cellContent;
-
-                            if (scheduleData.shift) {
-                                cellContent = `<div class="text-sm ${plannedStyle}"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-xs">${scheduleData.time || ''}</p></div>`;
-                            } else {
-                                cellContent = '<span class="text-2xl font-light text-gray-400">+</span>';
-                            }
+                            let cellContent = scheduleData.shift ? `<div class="text-sm ${plannedStyle}"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-xs">${scheduleData.time || ''}</p></div>` : '<span class="text-2xl font-light text-gray-400">+</span>';
                             tbody += `<td class="p-1 ${cellClass}"><div class="schedule-cell" data-manager-id="${manager.id}" data-date="${date}">${cellContent}</div></td>`;
                         });
                         tbody += '</tr>';
@@ -1311,30 +1305,14 @@
 
                 let mobileHTML = '';
                 if (appState.managers.length > 0) {
-                     weekDates.forEach((date, i) => {
+                    weekDates.forEach((date, i) => {
                         const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
                         mobileHTML += `<div class="bg-white rounded-lg shadow p-4 mt-4"><h4 class="font-bold text-lg mb-2 border-b pb-2">${days[i]} - ${formattedDate}</h4><div class="space-y-2">`;
                         appState.managers.forEach(manager => {
                             const scheduleKey = `${manager.id}_${date}`;
-                            let scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
-                            let isPlanned = false;
-                            
-                            if (!scheduleData.shift) {
-                                const plannedLeave = appState.plottedLeaves.find(leave => {
-                                    const leaveStart = createUTCDate(leave.startDate);
-                                    const leaveEnd = createUTCDate(leave.endDate);
-                                    const currentDate = createUTCDate(date);
-                                    return leave.managerId === manager.id && currentDate >= leaveStart && currentDate <= leaveEnd;
-                                });
-                                if (plannedLeave) {
-                                    scheduleData = { shift: plannedLeave.leaveType, time: 'Planned' };
-                                    isPlanned = true;
-                                }
-                            }
-
+                            const scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
                             let offClass = scheduleData.shift === 'OFF' ? 'text-red-500' : '';
-                            let plannedStyle = isPlanned ? 'text-gray-500 italic' : '';
-                            let shiftContent = scheduleData.shift ? `<div class="text-right ${plannedStyle}"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-gray-500 text-xs">${scheduleData.time || ''}</p></div>` : '<span class="text-xl font-light text-gray-400">+</span>';
+                            let shiftContent = scheduleData.shift ? `<div class="text-right"><p class="font-semibold ${offClass}">${scheduleData.shift}</p><p class="text-gray-500 text-xs">${scheduleData.time || ''}</p></div>` : '<span class="text-xl font-light text-gray-400">+</span>';
                             mobileHTML += `<div class="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 schedule-cell" data-manager-id="${manager.id}" data-date="${date}"><p class="font-medium">${manager.name}</p>${shiftContent}</div>`;
                         });
                         mobileHTML += `</div></div>`;
@@ -1373,7 +1351,7 @@
                                 cellContent += `<div class="text-xs p-1">${manager.name}</div>`;
                             }
                         });
-                        tbody += `<td class="p-1 align-top text-xs">${cellContent}</td>`;
+                        tbody += `<td class="p-1 align-top text-xs">${cellContent || ''}</td>`;
                     });
                     tbody += '</tr>';
                 }
@@ -1393,9 +1371,7 @@
                             }
                         });
 
-                        if(managerNames) {
-                             mobileHTML += `<div class="flex justify-between items-start"><p class="font-semibold text-sm w-1/3 text-left">${category}</p><div class="w-2/3 text-right">${managerNames}</div></div>`;
-                        }
+                        mobileHTML += `<div class="flex justify-between items-start"><p class="font-semibold text-sm w-1/3 text-left">${category}</p><div class="w-2/3 text-right">${managerNames || '<span class="text-gray-400">None</span>'}</div></div>`;
                     }
                     mobileHTML += `</div></div>`;
                 });
@@ -1460,7 +1436,7 @@
                 
                 try {
                     const plottedLeavesSnapshot = await db.collection('plotted_leaves').get();
-                    const allPlottedLeaves = plottedLeavesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                    const allPlottedLeaves = plottedLeavesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     
                     const scheduleSnapshots = await db.collection('manager_schedules').get();
                     const allSchedules = scheduleSnapshots.docs.reduce((acc, doc) => {
@@ -1477,14 +1453,15 @@
                             const dateStr = getLocalDateString(d);
                             const scheduleKey = `${leave.managerId}_${dateStr}`;
                             
-                            if (allSchedules[scheduleKey] && allSchedules[scheduleKey].shift === leave.leaveType) {
+                            if (allSchedules[scheduleKey] && (allSchedules[scheduleKey].shift === leave.leaveType || allSchedules[scheduleKey].shift === 'SL')) {
+                                const leaveType = allSchedules[scheduleKey].shift;
                                 if (!leaveSummary[leave.managerName]) {
                                     leaveSummary[leave.managerName] = { VL: 0, HL: 0, SL: 0 };
                                 }
-                                if(!leaveSummary[leave.managerName][leave.leaveType]) {
-                                    leaveSummary[leave.managerName][leave.leaveType] = 0;
+                                if (!leaveSummary[leave.managerName][leaveType]) {
+                                    leaveSummary[leave.managerName][leaveType] = 0;
                                 }
-                                leaveSummary[leave.managerName][leave.leaveType]++;
+                                leaveSummary[leave.managerName][leaveType]++;
                             }
                         }
                     });
@@ -1498,18 +1475,18 @@
                     const sortedManagerNames = Object.keys(leaveSummary).sort();
 
                     for (const managerName of sortedManagerNames) {
-                        const counts = leaveSummary[managerName];
-                        const VL = counts.VL || 0;
-                        const HL = counts.HL || 0;
-                        const SL = counts.SL || 0;
+                        const leaves = leaveSummary[managerName];
+                        const VL = leaves.VL || 0;
+                        const HL = leaves.HL || 0;
+                        const SL = leaves.SL || 0;
                         content += `
                             <div class="bg-gray-50 p-4 rounded-lg">
                                 <h4 class="font-bold text-lg">${managerName}</h4>
-                                <div class="mt-2 grid grid-cols-4 gap-4 text-center">
+                                <div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
                                     <div><p class="text-2xl font-bold text-blue-600">${VL}</p><p class="text-sm text-gray-500">VL</p></div>
                                     <div><p class="text-2xl font-bold text-green-600">${HL}</p><p class="text-sm text-gray-500">HL</p></div>
                                     <div><p class="text-2xl font-bold text-yellow-500">${SL}</p><p class="text-sm text-gray-500">SL</p></div>
-                                    <div><p class="text-2xl font-bold text-gray-800">${VL+HL+SL}</p><p class="text-sm text-gray-500">Total</p></div>
+                                    <div><p class="text-2xl font-bold text-gray-800">${VL + HL + SL}</p><p class="text-sm text-gray-500">Total</p></div>
                                 </div>
                             </div>
                         `;
@@ -1521,31 +1498,18 @@
                     container.innerHTML = '<p class="text-red-500 text-center py-4">Could not load leave records.</p>';
                 }
             }
-            
-            async function loadAndRenderGyOtSummary() {
-                const container = document.getElementById('gy-ot-summary-container');
-                const monthPicker = document.getElementById('gy-ot-month-picker');
-                if (!container || !monthPicker) return;
 
-                container.innerHTML = '<p class="text-gray-500 text-center py-4">Loading summary...</p>';
+            async function renderGyOtTracking() {
+                const container = document.getElementById('gy-ot-records-container');
+                const monthYearEl = document.getElementById('gy-ot-month-year');
+                if (!container || !monthYearEl) return;
 
-                const [year, month] = monthPicker.value.split('-').map(Number);
-                
-                const scheduleKeysToFetch = new Set();
-                let currentDate = new Date(year, month - 1, 1);
-                while(currentDate.getMonth() === month - 1) {
-                    scheduleKeysToFetch.add(getWeekDateStrings(currentDate)[0]);
-                    currentDate.setDate(currentDate.getDate() + 7);
-                }
+                monthYearEl.textContent = appState.calendarDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">Loading records...</p>';
 
                 try {
-                    const scheduleDocs = await Promise.all(Array.from(scheduleKeysToFetch).map(key => db.collection('manager_schedules').doc(key).get()));
-                    const allSchedules = scheduleDocs.reduce((acc, doc) => {
-                        if (doc.exists) {
-                            return { ...acc, ...doc.data() };
-                        }
-                        return acc;
-                    }, {});
+                    const scheduleSnapshots = await db.collection('manager_schedules').get();
+                    const allSchedules = scheduleSnapshots.docs.reduce((acc, doc) => ({ ...acc, ...doc.data() }), {});
 
                     const summary = {};
                     appState.managers.forEach(m => {
@@ -1555,92 +1519,82 @@
                         };
                     });
 
+                    const year = appState.calendarDate.getFullYear();
+                    const month = appState.calendarDate.getMonth();
+
                     for (const key in allSchedules) {
                         const [managerId, dateStr] = key.split('_');
-                        const schedule = allSchedules[key];
-                        const date = new Date(dateStr + "T00:00:00");
+                        const scheduleDate = new Date(dateStr + 'T00:00:00');
                         
-                        if (date.getFullYear() === year && date.getMonth() === month - 1) {
-                            const day = date.getDate();
+                        if (scheduleDate.getFullYear() === year && scheduleDate.getMonth() === month) {
                             const manager = appState.managers.find(m => m.id === managerId);
-
                             if (manager) {
+                                const day = scheduleDate.getDate();
                                 const cutoff = day <= 15 ? 'cutoff1' : 'cutoff2';
-                                if (schedule.shift === 'GY') {
-                                    summary[manager.name][cutoff].GY++;
-                                } else if (schedule.shift === 'OT') {
-                                    summary[manager.name][cutoff].OT++;
+                                const shift = allSchedules[key].shift;
+
+                                if (shift === 'GY' || shift === 'OT') {
+                                    summary[manager.name][cutoff][shift]++;
                                 }
                             }
                         }
                     }
+
                     
-                    renderGyOtTable(summary);
+                    const managersWithShifts = Object.keys(summary).filter(name => {
+                        const data = summary[name];
+                        return data.cutoff1.GY > 0 || data.cutoff1.OT > 0 || data.cutoff2.GY > 0 || data.cutoff2.OT > 0;
+                    }).sort();
+
+                    if (managersWithShifts.length === 0) {
+                        container.innerHTML = '<p class="text-gray-500 text-center py-4">No managers with GY or OT shifts for this month.</p>';
+                        return;
+                    }
+
+                    let tableHTML = `
+                        <div class="overflow-x-auto bg-white rounded-lg shadow border">
+                            <table class="min-w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manager</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Cut-off</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">GY</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">OT</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                    `;
+
+                    managersWithShifts.forEach(name => {
+                        const data = summary[name];
+                        tableHTML += `
+                            <tr>
+                                <td class="px-4 py-4 whitespace-nowrap font-medium text-gray-900 align-top" rowspan="2">${name}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">1-15</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-center">${data.cutoff1.GY}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-center">${data.cutoff1.OT}</td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">16-31</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-center">${data.cutoff2.GY}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-center">${data.cutoff2.OT}</td>
+                            </tr>
+                        `;
+                    });
+
+                    tableHTML += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    container.innerHTML = tableHTML;
 
                 } catch (error) {
-                    console.error("Error loading GY/OT summary:", error);
-                    container.innerHTML = '<p class="text-red-500 text-center py-4">Could not load summary.</p>';
+                    console.error("Error loading GY/OT records:", error);
+                    container.innerHTML = '<p class="text-red-500 text-center py-4">Could not load records.</p>';
                 }
             }
-
-            function renderGyOtTable(summary) {
-                const container = document.getElementById('gy-ot-summary-container');
-                
-                const managersWithShifts = Object.keys(summary).filter(name => {
-                    const data = summary[name];
-                    const totalGY = data.cutoff1.GY + data.cutoff2.GY;
-                    const totalOT = data.cutoff1.OT + data.cutoff2.OT;
-                    return totalGY > 0 || totalOT > 0;
-                }).sort();
-
-                if (managersWithShifts.length === 0) {
-                    container.innerHTML = '<p class="text-gray-500 text-center py-4">No managers with GY or OT for this period.</p>';
-                    return;
-                }
-
-                let tableHTML = `
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full bg-white border schedule-table">
-                            <thead>
-                                <tr>
-                                    <th rowspan="2" class="align-middle">Manager</th>
-                                    <th colspan="2">1st - 15th</th>
-                                    <th colspan="2">16th - End of Month</th>
-                                    <th colspan="2">Total</th>
-                                </tr>
-                                <tr>
-                                    <th>GY</th>
-                                    <th>OT</th>
-                                    <th>GY</th>
-                                    <th>OT</th>
-                                    <th>GY</th>
-                                    <th>OT</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-
-                managersWithShifts.forEach(name => {
-                    const data = summary[name];
-                    const totalGY = data.cutoff1.GY + data.cutoff2.GY;
-                    const totalOT = data.cutoff1.OT + data.cutoff2.OT;
-                    tableHTML += `
-                        <tr>
-                            <td class="font-semibold text-left px-2">${name}</td>
-                            <td>${data.cutoff1.GY}</td>
-                            <td>${data.cutoff1.OT}</td>
-                            <td>${data.cutoff2.GY}</td>
-                            <td>${data.cutoff2.OT}</td>
-                            <td class="font-bold">${totalGY}</td>
-                            <td class="font-bold">${totalOT}</td>
-                        </tr>
-                    `;
-                });
-
-                tableHTML += `</tbody></table></div>`;
-                container.innerHTML = tableHTML;
-            }
-
+            
             function renderActivities() {
                 const tabsContainer = document.getElementById('activity-tabs-container');
                 const contentContainer = document.getElementById('activity-content-container');
@@ -1713,16 +1667,11 @@
                     displayMonth(sortedMonthKeys[0]);
                 }
             }
-            
+
             function createActivityCard(activity) {
                 const date = activity.date.toDate();
                 const card = document.createElement('div');
                 card.className = 'bg-white p-4 rounded-lg shadow border';
-                
-                const timeParts = (activity.activity_time || " AM").split(" ");
-                const time = timeParts[0];
-                const ampm = timeParts[1] || "AM";
-
                 card.innerHTML = `
                     <div id="view-activity-${activity.id}">
                         <div class="flex justify-between items-center">
@@ -1746,82 +1695,8 @@
                             <p><strong>Character:</strong> ${activity.character || 'N/A'}</p>
                         </div>
                     </div>
-                    <form id="edit-form-activity-${activity.id}" class="hidden space-y-4 mt-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block font-semibold mb-1 text-sm">Activity Name</label>
-                                <select class="w-full p-2 border rounded edit-activity-name">
-                                    <option ${activity.activity_name === 'BP' ? 'selected' : ''}>BP</option>
-                                    <option ${activity.activity_name === 'LFO' ? 'selected' : ''}>LFO</option>
-                                    <option ${activity.activity_name === 'Funday' ? 'selected' : ''}>Funday</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1 text-sm">Event Venue</label>
-                                <select class="w-full p-2 border rounded edit-event-venue">
-                                    <option ${activity.event_venue === 'In-Store' ? 'selected' : ''}>In-Store</option>
-                                    <option ${activity.event_venue === 'Take-out' ? 'selected' : ''}>Take-out</option>
-                                    <option ${activity.event_venue === 'Pick-up' ? 'selected' : ''}>Pick-up</option>
-                                    <option ${activity.event_venue === 'Delivery' ? 'selected' : ''}>Delivery</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1 text-sm">Customer Name</label>
-                                <input type="text" value="${activity.customer_name || ''}" class="w-full p-2 border rounded edit-customer-name">
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1 text-sm">Contact Number</label>
-                                <input type="tel" value="${activity.contact_number || ''}" class="w-full p-2 border rounded edit-contact-number">
-                            </div>
-                             <div>
-                                <label class="block font-semibold mb-1 text-sm">Date</label>
-                                <input type="date" value="${getLocalDateString(date)}" class="w-full p-2 border rounded edit-activity-date">
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1 text-sm">Time</label>
-                                <div class="flex">
-                                    <input type="text" value="${time}" class="w-full p-2 border rounded-l-lg edit-activity-time">
-                                    <select class="p-2 border rounded-r-lg bg-gray-50 edit-activity-ampm">
-                                        <option ${ampm === 'AM' ? 'selected' : ''}>AM</option>
-                                        <option ${ampm === 'PM' ? 'selected' : ''}>PM</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1 text-sm">Est. Sales (₱)</label>
-                                <input type="number" step="0.01" value="${activity.potential_sales || 0}" class="w-full p-2 border rounded edit-activity-sales">
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1 text-sm">Status</label>
-                                <select class="w-full p-2 border rounded edit-activity-status">
-                                    <option ${activity.remarks === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
-                                    <option ${activity.remarks === 'Needs Follow-up' ? 'selected' : ''}>Needs Follow-up</option>
-                                    <option ${activity.remarks === 'Tentative' ? 'selected' : ''}>Tentative</option>
-                                    <option ${activity.remarks === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1 text-sm">For Follow-up</label>
-                                <input type="text" value="${activity.for_follow_up || ''}" class="w-full p-2 border rounded edit-for-follow-up">
-                            </div>
-                             <div>
-                                <label class="block font-semibold mb-1 text-sm">Handled by</label>
-                                <input type="text" value="${activity.handled_by || ''}" class="w-full p-2 border rounded edit-handled-by">
-                            </div>
-                             <div>
-                                <label class="block font-semibold mb-1 text-sm">Character</label>
-                                <select class="w-full p-2 border rounded edit-character">
-                                    <option ${activity.character === 'None' ? 'selected' : ''}>None</option>
-                                    <option ${activity.character === '1' ? 'selected' : ''}>1</option>
-                                    <option ${activity.character === '2' ? 'selected' : ''}>2</option>
-                                    <option ${activity.character === 'Full' ? 'selected' : ''}>Full</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button type="button" data-id="${activity.id}" class="update-activity-btn w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg">Save Changes</button>
-                            <button type="button" data-id="${activity.id}" class="cancel-edit-activity-btn w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
-                        </div>
+                    <form id="edit-form-activity-${activity.id}" class="hidden space-y-2 mt-4">
+                        <!-- Edit form fields will be added here by the edit handler -->
                     </form>
                 `;
                 return card;
@@ -1993,8 +1868,6 @@
                         timeContainer.style.display = 'block';
                     }
                 });
-
-                document.getElementById('gy-ot-month-picker')?.addEventListener('change', loadAndRenderGyOtSummary);
             }
             
             // --- EVENT HANDLER FUNCTIONS ---
@@ -2119,7 +1992,7 @@
                         .catch(err => showToast('Error updating record.', 'error'));
                 }
             }
-            
+
             function handleActivityListClicks(e) {
                 const target = e.target;
                 const id = target.closest('[data-id]')?.dataset.id;
@@ -2127,13 +2000,97 @@
 
                 const viewDiv = document.getElementById(`view-activity-${id}`);
                 const editForm = document.getElementById(`edit-form-activity-${id}`);
+                const activity = appState.activitiesData.find(a => a.id === id);
 
                 if (target.closest('.edit-activity-btn')) {
+                    if (!activity) return;
+                    
+                    const [time, ampm] = (activity.activity_time || ' AM').split(' ');
+                    editForm.innerHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-semibold mb-1">Activity Name</label>
+                                <select class="w-full p-2 border rounded edit-activity-name">
+                                    <option ${activity.activity_name === 'BP' ? 'selected' : ''}>BP</option>
+                                    <option ${activity.activity_name === 'LFO' ? 'selected' : ''}>LFO</option>
+                                    <option ${activity.activity_name === 'Funday' ? 'selected' : ''}>Funday</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1">Event Venue</label>
+                                <select class="w-full p-2 border rounded edit-event-venue">
+                                    <option ${activity.event_venue === 'In-Store' ? 'selected' : ''}>In-Store</option>
+                                    <option ${activity.event_venue === 'Take-out' ? 'selected' : ''}>Take-out</option>
+                                    <option ${activity.event_venue === 'Pick-up' ? 'selected' : ''}>Pick-up</option>
+                                    <option ${activity.event_venue === 'Delivery' ? 'selected' : ''}>Delivery</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1">Customer Name</label>
+                                <input type="text" value="${activity.customer_name || ''}" class="w-full p-2 border rounded edit-customer-name">
+                            </div>
+                             <div>
+                                <label class="block font-semibold mb-1">Contact Number</label>
+                                <input type="tel" value="${activity.contact_number || ''}" class="w-full p-2 border rounded edit-contact-number">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1">Date</label>
+                                <input type="date" value="${getLocalDateString(activity.date.toDate())}" class="w-full p-2 border rounded edit-activity-date">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1">Time</label>
+                                <div class="flex">
+                                    <input type="text" value="${time}" class="w-full p-2 rounded-l-lg border-2 border-r-0 border-gray-200 edit-activity-time">
+                                    <select class="p-2 rounded-r-lg border-2 border-l-0 border-gray-200 bg-gray-50 edit-activity-ampm">
+                                        <option ${ampm === 'AM' ? 'selected' : ''}>AM</option>
+                                        <option ${ampm === 'PM' ? 'selected' : ''}>PM</option>
+                                    </select>
+                                </div>
+                            </div>
+                             <div>
+                                <label class="block font-semibold mb-1">Est. Sales (₱)</label>
+                                <input type="number" step="0.01" value="${activity.potential_sales || 0}" class="w-full p-2 border rounded edit-activity-sales">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1">Status</label>
+                                <select class="w-full p-2 border rounded edit-activity-status">
+                                    <option ${activity.remarks === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                                    <option ${activity.remarks === 'Needs Follow-up' ? 'selected' : ''}>Needs Follow-up</option>
+                                    <option ${activity.remarks === 'Tentative' ? 'selected' : ''}>Tentative</option>
+                                    <option ${activity.remarks === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1">For Follow-up</label>
+                                <input type="text" list="follow-up-options" value="${activity.for_follow_up || ''}" class="w-full p-2 border rounded edit-for-follow-up">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1">Handled by</label>
+                                <input type="text" value="${activity.handled_by || ''}" class="w-full p-2 border rounded edit-handled-by">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1">Character</label>
+                                <select class="w-full p-2 border rounded edit-character">
+                                    <option ${activity.character === 'None' ? 'selected' : ''}>None</option>
+                                    <option ${activity.character === '1' ? 'selected' : ''}>1</option>
+                                    <option ${activity.character === '2' ? 'selected' : ''}>2</option>
+                                    <option ${activity.character === 'Full' ? 'selected' : ''}>Full</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2 mt-4">
+                            <button type="button" data-id="${id}" class="update-activity-btn w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg">Save Changes</button>
+                            <button type="button" data-id="${id}" class="cancel-edit-activity-btn w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                        </div>
+                    `;
+                    
                     viewDiv.classList.add('hidden');
                     editForm.classList.remove('hidden');
+
                 } else if (target.closest('.cancel-edit-activity-btn')) {
                     viewDiv.classList.remove('hidden');
                     editForm.classList.add('hidden');
+                    editForm.innerHTML = ''; // Clear the form content
                 } else if (target.closest('.delete-activity-btn')) {
                     showConfirm('Are you sure you want to delete this activity?', () => {
                         db.collection('future_activities').doc(id).delete()
@@ -2142,15 +2099,15 @@
                     });
                 } else if (target.closest('.update-activity-btn')) {
                     const form = target.closest('form');
-                    const time = form.querySelector('.edit-activity-time').value;
-                    const ampm = form.querySelector('.edit-activity-ampm').value;
+                    const timeValue = form.querySelector('.edit-activity-time').value;
+                    const ampmValue = form.querySelector('.edit-activity-ampm').value;
                     const data = {
                         activity_name: form.querySelector('.edit-activity-name').value,
                         event_venue: form.querySelector('.edit-event-venue').value,
                         customer_name: form.querySelector('.edit-customer-name').value,
                         contact_number: form.querySelector('.edit-contact-number').value,
                         date: firebase.firestore.Timestamp.fromDate(createUTCDate(form.querySelector('.edit-activity-date').value)),
-                        activity_time: `${time} ${ampm}`,
+                        activity_time: `${timeValue} ${ampmValue}`,
                         potential_sales: parseFloat(form.querySelector('.edit-activity-sales').value),
                         remarks: form.querySelector('.edit-activity-status').value,
                         for_follow_up: form.querySelector('.edit-for-follow-up').value,
@@ -2189,12 +2146,12 @@
                     }
                 } else if(target.id === 'add-leave-btn') {
                     openLeaveModal();
-                } else if(target.id === 'prev-month-btn') {
+                } else if(target.id === 'prev-month-btn' || target.id === 'gy-ot-prev-month-btn') {
                     appState.calendarDate.setMonth(appState.calendarDate.getMonth() - 1);
-                    loadPlottedLeavesForMonth();
-                } else if(target.id === 'next-month-btn') {
+                    renderManagerSchedule();
+                } else if(target.id === 'next-month-btn' || target.id === 'gy-ot-next-month-btn') {
                     appState.calendarDate.setMonth(appState.calendarDate.getMonth() + 1);
-                    loadPlottedLeavesForMonth();
+                    renderManagerSchedule();
                 } else if (target.classList.contains('leave-entry')) {
                     if (appState.accessLevel === 2) return;
                     const leaveId = target.dataset.leaveId;
@@ -2288,7 +2245,8 @@
                 const { managerId, date } = modal.dataset;
                 const shift = document.getElementById('modal-shift-select').value;
                 const time = document.getElementById('modal-time-input').value;
-                
+                const managerName = appState.managers.find(m => m.id === managerId)?.name;
+
                 const scheduleKey = `${managerId}_${date}`;
                 const weekKey = getWeekDateStrings(new Date(date + 'T00:00:00'))[0];
                 const scheduleData = { shift, time: ['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(shift) ? '' : time };
@@ -2381,7 +2339,7 @@
                     
                     showToast(`Leave ${leaveId ? 'updated' : 'plotted'} successfully!`, "success");
                     modal.classList.add('hidden');
-                    loadInitialData(); // Reload to show new planned leave
+                    loadInitialData(); // Reload data to show the new planned leave
                 } catch (error) {
                     console.error("Error saving leave:", error);
                     showToast("Failed to save leave.", "error");
@@ -2396,6 +2354,7 @@
                 showConfirm("Are you sure you want to delete this planned leave?", async () => {
                     try {
                         await db.collection('plotted_leaves').doc(leaveId).delete();
+                        
                         showToast("Planned leave deleted successfully!", "success");
                         modal.classList.add('hidden');
                         loadInitialData();
@@ -2449,12 +2408,10 @@
                         await loadInitialData();
                         
                     } catch (error) {
-                        console.error("Fatal error during login process:", error);
-                        showToast("A critical error occurred during login. Please try again.", "error");
+                        console.error("Authentication process failed:", error);
+                        showToast("Could not complete login process. Please contact admin.", "error");
                         auth.signOut(); 
-                    } finally {
-                        UI.loadingOverlay.style.display = 'none';
-                    }
+                    } 
                 } else {
                     UI.loginScreen.style.display = 'flex';
                     UI.appContainer.style.display = 'none';
