@@ -376,6 +376,7 @@
                             <button data-tab="shift-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">Shift Schedule</button>
                             <button data-tab="leave-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">HL & VL Schedule</button>
                             <button data-tab="leave-tracking" class="schedule-tab whitespace-nowrap font-medium text-sm">Leave Tracking</button>
+                            <button data-tab="gy-ot-tracking" class="schedule-tab whitespace-nowrap font-medium text-sm">GY & OT</button>
                             <button data-tab="manage-managers" class="schedule-tab whitespace-nowrap font-medium text-sm">Manage Managers</button>
                         </nav>
                     </div>
@@ -413,6 +414,15 @@
                     <div id="leave-tracking-content" class="schedule-content hidden">
                         <h3 class="text-xl font-bold mb-4">Manager Leave Summary</h3>
                         <div id="leave-records-container" class="space-y-4"></div>
+                    </div>
+
+                    <div id="gy-ot-tracking-content" class="schedule-content hidden">
+                        <h3 class="text-xl font-bold mb-4">Graveyard & Overtime Summary</h3>
+                        <div class="flex items-center space-x-4 mb-4">
+                            <label for="gy-ot-month-picker" class="font-semibold">Select Month:</label>
+                            <input type="month" id="gy-ot-month-picker" class="p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                        </div>
+                        <div id="gy-ot-summary-container"></div>
                     </div>
 
                     <div id="manage-managers-content" class="schedule-content hidden">
@@ -984,6 +994,12 @@
                 setupActivityFilters();
                 const weekPicker = document.getElementById('week-picker');
                 if (weekPicker) weekPicker.value = getLocalDateString(new Date());
+
+                const gyOtMonthPicker = document.getElementById('gy-ot-month-picker');
+                if (gyOtMonthPicker) {
+                    const today = new Date();
+                    gyOtMonthPicker.value = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+                }
             }
 
             // --- ACCESS CONTROL ---
@@ -1193,6 +1209,9 @@
                     case 'leave-tracking':
                         loadAndRenderLeaveTracking();
                         break;
+                    case 'gy-ot-tracking':
+                        loadAndRenderGyOtSummary();
+                        break;
                     case 'manage-managers':
                         renderManagerList();
                         break;
@@ -1259,7 +1278,6 @@
                             let isPlanned = false;
                             let cellClass = '';
 
-                            // *** LOGIC FIX: Check for planned leaves if no confirmed schedule exists ***
                             if (!scheduleData.shift) {
                                 const plannedLeave = appState.plottedLeaves.find(leave => {
                                     const leaveStart = createUTCDate(leave.startDate);
@@ -1271,7 +1289,7 @@
                                 if (plannedLeave) {
                                     scheduleData = { shift: plannedLeave.leaveType, time: 'Planned' };
                                     isPlanned = true;
-                                    cellClass = 'planned-leave-cell'; // Add class for styling
+                                    cellClass = 'planned-leave-cell';
                                 }
                             }
 
@@ -1451,7 +1469,6 @@
 
                     const leaveSummary = {};
 
-                    // *** LOGIC FIX: Iterate through plotted leaves and check against confirmed schedules ***
                     allPlottedLeaves.forEach(leave => {
                         const start = createUTCDate(leave.startDate);
                         const end = createUTCDate(leave.endDate);
@@ -1460,7 +1477,6 @@
                             const dateStr = getLocalDateString(d);
                             const scheduleKey = `${leave.managerId}_${dateStr}`;
                             
-                            // This is the consumption check: is the leave confirmed in the schedule?
                             if (allSchedules[scheduleKey] && allSchedules[scheduleKey].shift === leave.leaveType) {
                                 if (!leaveSummary[leave.managerName]) {
                                     leaveSummary[leave.managerName] = { VL: 0, HL: 0, SL: 0 };
@@ -1506,6 +1522,125 @@
                 }
             }
             
+            async function loadAndRenderGyOtSummary() {
+                const container = document.getElementById('gy-ot-summary-container');
+                const monthPicker = document.getElementById('gy-ot-month-picker');
+                if (!container || !monthPicker) return;
+
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">Loading summary...</p>';
+
+                const [year, month] = monthPicker.value.split('-').map(Number);
+                
+                const scheduleKeysToFetch = new Set();
+                let currentDate = new Date(year, month - 1, 1);
+                while(currentDate.getMonth() === month - 1) {
+                    scheduleKeysToFetch.add(getWeekDateStrings(currentDate)[0]);
+                    currentDate.setDate(currentDate.getDate() + 7);
+                }
+
+                try {
+                    const scheduleDocs = await Promise.all(Array.from(scheduleKeysToFetch).map(key => db.collection('manager_schedules').doc(key).get()));
+                    const allSchedules = scheduleDocs.reduce((acc, doc) => {
+                        if (doc.exists) {
+                            return { ...acc, ...doc.data() };
+                        }
+                        return acc;
+                    }, {});
+
+                    const summary = {};
+                    appState.managers.forEach(m => {
+                        summary[m.name] = {
+                            cutoff1: { GY: 0, OT: 0 },
+                            cutoff2: { GY: 0, OT: 0 }
+                        };
+                    });
+
+                    for (const key in allSchedules) {
+                        const [managerId, dateStr] = key.split('_');
+                        const schedule = allSchedules[key];
+                        const date = new Date(dateStr + "T00:00:00");
+                        
+                        if (date.getFullYear() === year && date.getMonth() === month - 1) {
+                            const day = date.getDate();
+                            const manager = appState.managers.find(m => m.id === managerId);
+
+                            if (manager) {
+                                const cutoff = day <= 15 ? 'cutoff1' : 'cutoff2';
+                                if (schedule.shift === 'GY') {
+                                    summary[manager.name][cutoff].GY++;
+                                } else if (schedule.shift === 'OT') {
+                                    summary[manager.name][cutoff].OT++;
+                                }
+                            }
+                        }
+                    }
+                    
+                    renderGyOtTable(summary);
+
+                } catch (error) {
+                    console.error("Error loading GY/OT summary:", error);
+                    container.innerHTML = '<p class="text-red-500 text-center py-4">Could not load summary.</p>';
+                }
+            }
+
+            function renderGyOtTable(summary) {
+                const container = document.getElementById('gy-ot-summary-container');
+                
+                const managersWithShifts = Object.keys(summary).filter(name => {
+                    const data = summary[name];
+                    const totalGY = data.cutoff1.GY + data.cutoff2.GY;
+                    const totalOT = data.cutoff1.OT + data.cutoff2.OT;
+                    return totalGY > 0 || totalOT > 0;
+                }).sort();
+
+                if (managersWithShifts.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-4">No managers with GY or OT for this period.</p>';
+                    return;
+                }
+
+                let tableHTML = `
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border schedule-table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2" class="align-middle">Manager</th>
+                                    <th colspan="2">1st - 15th</th>
+                                    <th colspan="2">16th - End of Month</th>
+                                    <th colspan="2">Total</th>
+                                </tr>
+                                <tr>
+                                    <th>GY</th>
+                                    <th>OT</th>
+                                    <th>GY</th>
+                                    <th>OT</th>
+                                    <th>GY</th>
+                                    <th>OT</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                managersWithShifts.forEach(name => {
+                    const data = summary[name];
+                    const totalGY = data.cutoff1.GY + data.cutoff2.GY;
+                    const totalOT = data.cutoff1.OT + data.cutoff2.OT;
+                    tableHTML += `
+                        <tr>
+                            <td class="font-semibold text-left px-2">${name}</td>
+                            <td>${data.cutoff1.GY}</td>
+                            <td>${data.cutoff1.OT}</td>
+                            <td>${data.cutoff2.GY}</td>
+                            <td>${data.cutoff2.OT}</td>
+                            <td class="font-bold">${totalGY}</td>
+                            <td class="font-bold">${totalOT}</td>
+                        </tr>
+                    `;
+                });
+
+                tableHTML += `</tbody></table></div>`;
+                container.innerHTML = tableHTML;
+            }
+
             function renderActivities() {
                 const tabsContainer = document.getElementById('activity-tabs-container');
                 const contentContainer = document.getElementById('activity-content-container');
@@ -1858,6 +1993,8 @@
                         timeContainer.style.display = 'block';
                     }
                 });
+
+                document.getElementById('gy-ot-month-picker')?.addEventListener('change', loadAndRenderGyOtSummary);
             }
             
             // --- EVENT HANDLER FUNCTIONS ---
@@ -2121,12 +2258,11 @@
                 const shiftSelect = document.getElementById('modal-shift-select');
                 const timeInput = document.getElementById('modal-time-input');
                 const timeContainer = document.getElementById('modal-time-container');
-                const shiftOptions = ["", "Open SL", "Open SM", "Mid SM", "Close SL", "Close SM", "GY", "Scheduling", "VL", "HL", "SL", "OFF", "Ordering", "People Day", "MDP", "Pull-out", "Marketing", "Store Day", "Travel", "Class", "Payroll", "Inventory", "Meeting", "Leave"];
+                const shiftOptions = ["", "Open SL", "Open SM", "Mid SM", "Close SL", "Close SM", "GY", "OT", "Scheduling", "VL", "HL", "SL", "OFF", "Ordering", "People Day", "MDP", "Pull-out", "Marketing", "Store Day", "Travel", "Class", "Payroll", "Inventory", "Meeting", "Leave"];
                 shiftSelect.innerHTML = shiftOptions.map(o => `<option value="${o}">${o}</option>`).join('');
 
                 let scheduleData = appState.managerSchedules[`${managerId}_${date}`] || { shift: '', time: '' };
 
-                // *** LOGIC FIX: Pre-fill modal with planned leave data if it exists ***
                 if (!scheduleData.shift) {
                     const plannedLeave = appState.plottedLeaves.find(leave => {
                         const leaveStart = createUTCDate(leave.startDate);
