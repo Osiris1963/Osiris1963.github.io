@@ -418,11 +418,19 @@
                     </div>
 
                     <div id="gy-ot-content" class="schedule-content hidden">
-                        <div class="flex justify-between items-center mb-4">
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
                             <div class="flex items-center space-x-2">
                                 <button id="gy-ot-prev-month-btn" class="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300">&lt;</button>
                                 <h3 id="gy-ot-month-year" class="text-xl font-bold text-center w-48"></h3>
                                 <button id="gy-ot-next-month-btn" class="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300">&gt;</button>
+                            </div>
+                            <div>
+                                <label for="gy-ot-cutoff-select" class="sr-only">Select Cut-off Period</label>
+                                <select id="gy-ot-cutoff-select" class="p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                                    <option value="all" selected>All Month</option>
+                                    <option value="1-15">Days 1-15</option>
+                                    <option value="16-31">Days 16-31</option>
+                                </select>
                             </div>
                         </div>
                         <div id="gy-ot-records-container" class="space-y-6"></div>
@@ -1504,6 +1512,9 @@
                 const monthYearEl = document.getElementById('gy-ot-month-year');
                 if (!container || !monthYearEl) return;
 
+                const cutoffSelect = document.getElementById('gy-ot-cutoff-select');
+                const selectedCutoff = cutoffSelect ? cutoffSelect.value : 'all';
+
                 monthYearEl.textContent = appState.calendarDate.toLocaleString('default', { month: 'long', year: 'numeric' });
                 container.innerHTML = '<p class="text-gray-500 text-center py-4">Loading records...</p>';
 
@@ -1543,11 +1554,16 @@
                     
                     const managersWithShifts = Object.keys(summary).filter(name => {
                         const data = summary[name];
-                        return data.cutoff1.GY > 0 || data.cutoff1.OT > 0 || data.cutoff2.GY > 0 || data.cutoff2.OT > 0;
+                        const hasCutoff1Data = data.cutoff1.GY > 0 || data.cutoff1.OT > 0;
+                        const hasCutoff2Data = data.cutoff2.GY > 0 || data.cutoff2.OT > 0;
+
+                        if (selectedCutoff === '1-15') return hasCutoff1Data;
+                        if (selectedCutoff === '16-31') return hasCutoff2Data;
+                        return hasCutoff1Data || hasCutoff2Data; // 'all' case
                     }).sort();
 
                     if (managersWithShifts.length === 0) {
-                        container.innerHTML = '<p class="text-gray-500 text-center py-4">No managers with GY or OT shifts for this month.</p>';
+                        container.innerHTML = `<p class="text-gray-500 text-center py-4">No managers with GY or OT shifts for this period.</p>`;
                         return;
                     }
 
@@ -1567,19 +1583,29 @@
 
                     managersWithShifts.forEach(name => {
                         const data = summary[name];
-                        tableHTML += `
-                            <tr>
-                                <td class="px-4 py-4 whitespace-nowrap font-medium text-gray-900 align-top" rowspan="2">${name}</td>
-                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">1-15</td>
-                                <td class="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-center">${data.cutoff1.GY}</td>
-                                <td class="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-center">${data.cutoff1.OT}</td>
-                            </tr>
-                            <tr class="border-t">
-                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">16-31</td>
-                                <td class="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-center">${data.cutoff2.GY}</td>
-                                <td class="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-center">${data.cutoff2.OT}</td>
-                            </tr>
-                        `;
+                        const hasCutoff1Data = data.cutoff1.GY > 0 || data.cutoff1.OT > 0;
+                        const hasCutoff2Data = data.cutoff2.GY > 0 || data.cutoff2.OT > 0;
+
+                        if ((selectedCutoff === '1-15' || selectedCutoff === 'all') && hasCutoff1Data) {
+                            tableHTML += `
+                                <tr class="divide-x divide-gray-200">
+                                    <td class="px-4 py-4 whitespace-nowrap font-medium text-gray-900">${name}</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">1-15</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-center">${data.cutoff1.GY}</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-center">${data.cutoff1.OT}</td>
+                                </tr>
+                            `;
+                        }
+                        if ((selectedCutoff === '16-31' || selectedCutoff === 'all') && hasCutoff2Data) {
+                            tableHTML += `
+                                <tr class="divide-x divide-gray-200">
+                                    <td class="px-4 py-4 whitespace-nowrap font-medium text-gray-900">${name}</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">16-31</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-center">${data.cutoff2.GY}</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-center">${data.cutoff2.OT}</td>
+                                </tr>
+                            `;
+                        }
                     });
 
                     tableHTML += `
@@ -1868,6 +1894,9 @@
                         timeContainer.style.display = 'block';
                     }
                 });
+                
+                // Add event listener for the new GY/OT cutoff dropdown
+                document.getElementById('gy-ot-cutoff-select')?.addEventListener('change', renderGyOtTracking);
             }
             
             // --- EVENT HANDLER FUNCTIONS ---
