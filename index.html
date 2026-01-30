@@ -572,8 +572,9 @@
                 </div>
                 <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
                     <div id="manager-schedule-tabs" class="border-b border-gray-200 mb-6">
-                        <nav class="-mb-px flex space-x-2" aria-label="Tabs">
-                            <button data-tab="weekly-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm active">Weekly Schedule</button>
+                        <nav class="-mb-px flex space-x-2 overflow-x-auto hide-scrollbar" aria-label="Tabs">
+                            <button data-tab="my-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm active">My Schedule</button>
+                            <button data-tab="weekly-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">Weekly Schedule</button>
                             <button data-tab="shift-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">Shift Schedule</button>
                             <button data-tab="leave-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">HL & VL Schedule</button>
                             <button data-tab="leave-tracking" class="schedule-tab whitespace-nowrap font-medium text-sm">Leave Tracking</button>
@@ -582,7 +583,53 @@
                         </nav>
                     </div>
 
-                    <div id="weekly-schedule-content" class="schedule-content">
+                    <div id="my-schedule-content" class="schedule-content">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-[#DA291C] rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                    <span id="my-schedule-avatar">M</span>
+                                </div>
+                                <div>
+                                    <h3 id="my-schedule-name" class="text-lg font-bold">My Schedule</h3>
+                                    <p class="text-sm text-gray-500">Your weekly duty assignments</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <label for="my-schedule-week-picker" class="font-semibold mr-2 text-sm">Week:</label>
+                                <input type="date" id="my-schedule-week-picker" class="p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none text-sm">
+                            </div>
+                        </div>
+                        
+                        <!-- My Schedule Cards -->
+                        <div id="my-schedule-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                        
+                        <!-- Weekly Summary -->
+                        <div id="my-schedule-summary" class="mt-6 p-4 bg-gray-50 rounded-xl">
+                            <h4 class="font-bold text-gray-700 mb-3">Weekly Summary</h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                                <div class="bg-white p-3 rounded-lg shadow-sm">
+                                    <p class="text-2xl font-bold text-[#DA291C]" id="my-schedule-total-days">0</p>
+                                    <p class="text-xs text-gray-500">Working Days</p>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg shadow-sm">
+                                    <p class="text-2xl font-bold text-blue-600" id="my-schedule-off-days">0</p>
+                                    <p class="text-xs text-gray-500">Days Off</p>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg shadow-sm">
+                                    <p class="text-2xl font-bold text-green-600" id="my-schedule-leave-days">0</p>
+                                    <p class="text-xs text-gray-500">Leave Days</p>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg shadow-sm">
+                                    <p class="text-2xl font-bold text-purple-600" id="my-schedule-gy-days">0</p>
+                                    <p class="text-xs text-gray-500">GY Shifts</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="weekly-schedule-content" class="schedule-content hidden">
                         <div class="flex justify-end items-center mb-4">
                             <label for="week-picker" class="font-semibold mr-2">Select Week:</label>
                             <input type="date" id="week-picker" class="p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
@@ -975,6 +1022,9 @@
                 plottedLeaves: [],
                 calendarDate: new Date(),
                 accessLevel: 3, // Default to viewer
+                currentUserEmail: null,
+                currentUserManagerId: null,
+                currentUserManagerName: null,
             };
             
             // --- UI ELEMENT SELECTORS ---
@@ -1401,9 +1451,12 @@
             }
 
             function renderManagerSchedule() {
-                const activeTab = document.querySelector('#manager-schedule-tabs .active')?.dataset.tab || 'weekly-schedule';
+                const activeTab = document.querySelector('#manager-schedule-tabs .active')?.dataset.tab || 'my-schedule';
                 
                 switch(activeTab) {
+                    case 'my-schedule':
+                        renderMySchedule();
+                        break;
                     case 'weekly-schedule':
                         const weekPicker = document.getElementById('week-picker');
                         const weekDates = getWeekDateStrings(new Date(weekPicker.value + 'T00:00:00'));
@@ -1457,6 +1510,208 @@
                 }
                 renderWeeklySchedule();
                 renderShiftSchedule();
+            }
+
+            function renderMySchedule() {
+                const container = document.getElementById('my-schedule-container');
+                const nameEl = document.getElementById('my-schedule-name');
+                const avatarEl = document.getElementById('my-schedule-avatar');
+                const weekPicker = document.getElementById('my-schedule-week-picker');
+                
+                if (!container) return;
+                
+                // Set the week picker to current week if not set
+                if (!weekPicker.value) {
+                    weekPicker.value = getLocalDateString(new Date());
+                }
+                
+                const selectedDate = new Date(weekPicker.value + 'T00:00:00');
+                const weekDates = getWeekDateStrings(selectedDate);
+                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                const daysShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                
+                // Check if user is linked to a manager
+                if (!appState.currentUserManagerId) {
+                    // Try to find by email match
+                    const emailUsername = (appState.currentUserEmail || '').split('@')[0].toLowerCase();
+                    const matchedManager = appState.managers.find(m => 
+                        m.name.toLowerCase().replace(/\s+/g, '') === emailUsername ||
+                        m.name.toLowerCase().split(' ')[0] === emailUsername ||
+                        m.name.toLowerCase() === emailUsername
+                    );
+                    if (matchedManager) {
+                        appState.currentUserManagerId = matchedManager.id;
+                        appState.currentUserManagerName = matchedManager.name;
+                    }
+                }
+                
+                // Update header with manager name
+                if (appState.currentUserManagerName) {
+                    nameEl.textContent = appState.currentUserManagerName + "'s Schedule";
+                    avatarEl.textContent = appState.currentUserManagerName.charAt(0).toUpperCase();
+                } else {
+                    nameEl.textContent = "My Schedule";
+                    avatarEl.textContent = "M";
+                }
+                
+                // If no manager linked, show message
+                if (!appState.currentUserManagerId) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-8 bg-gray-50 rounded-xl">
+                            <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            <h3 class="text-lg font-semibold text-gray-500 mb-2">No Manager Profile Linked</h3>
+                            <p class="text-gray-400 text-sm max-w-md mx-auto">Your account is not linked to a manager profile. Please contact your administrator to link your account.</p>
+                        </div>
+                    `;
+                    // Reset summary
+                    document.getElementById('my-schedule-total-days').textContent = '0';
+                    document.getElementById('my-schedule-off-days').textContent = '0';
+                    document.getElementById('my-schedule-leave-days').textContent = '0';
+                    document.getElementById('my-schedule-gy-days').textContent = '0';
+                    return;
+                }
+                
+                // Build schedule cards
+                let html = '';
+                let workingDays = 0;
+                let offDays = 0;
+                let leaveDays = 0;
+                let gyDays = 0;
+                
+                weekDates.forEach((date, i) => {
+                    const scheduleKey = `${appState.currentUserManagerId}_${date}`;
+                    let scheduleData = appState.managerSchedules[scheduleKey] || { shift: '', time: '' };
+                    let isPlanned = false;
+                    
+                    // Check for planned leaves
+                    if (!scheduleData.shift) {
+                        const plannedLeave = appState.plottedLeaves.find(leave => {
+                            const leaveStart = createUTCDate(leave.startDate);
+                            const leaveEnd = createUTCDate(leave.endDate);
+                            const currentDate = createUTCDate(date);
+                            return leave.managerId === appState.currentUserManagerId && currentDate >= leaveStart && currentDate <= leaveEnd;
+                        });
+                        
+                        if (plannedLeave) {
+                            scheduleData = { shift: plannedLeave.leaveType, time: 'Planned' };
+                            isPlanned = true;
+                        }
+                    }
+                    
+                    // Count days for summary
+                    if (scheduleData.shift) {
+                        if (scheduleData.shift === 'OFF') {
+                            offDays++;
+                        } else if (['VL', 'HL', 'SL', 'Leave'].includes(scheduleData.shift)) {
+                            leaveDays++;
+                        } else if (scheduleData.shift === 'GY') {
+                            gyDays++;
+                            workingDays++;
+                        } else {
+                            workingDays++;
+                        }
+                    }
+                    
+                    // Determine card styling based on shift
+                    let cardBg = 'bg-gray-50';
+                    let shiftColor = 'text-gray-600';
+                    let borderColor = 'border-gray-200';
+                    let icon = '';
+                    
+                    if (scheduleData.shift) {
+                        switch(scheduleData.shift) {
+                            case 'Opening':
+                            case 'Open SM':
+                            case 'Open SL':
+                                cardBg = 'bg-yellow-50';
+                                shiftColor = 'text-yellow-700';
+                                borderColor = 'border-yellow-300';
+                                icon = '🌅';
+                                break;
+                            case 'Mid':
+                            case 'Mid SM':
+                                cardBg = 'bg-blue-50';
+                                shiftColor = 'text-blue-700';
+                                borderColor = 'border-blue-300';
+                                icon = '☀️';
+                                break;
+                            case 'Closing':
+                            case 'Close SM':
+                            case 'Close SL':
+                                cardBg = 'bg-purple-50';
+                                shiftColor = 'text-purple-700';
+                                borderColor = 'border-purple-300';
+                                icon = '🌙';
+                                break;
+                            case 'GY':
+                                cardBg = 'bg-gray-700';
+                                shiftColor = 'text-white';
+                                borderColor = 'border-gray-600';
+                                icon = '🌃';
+                                break;
+                            case 'OFF':
+                                cardBg = 'bg-red-50';
+                                shiftColor = 'text-red-600';
+                                borderColor = 'border-red-300';
+                                icon = '🏠';
+                                break;
+                            case 'VL':
+                                cardBg = 'bg-blue-100';
+                                shiftColor = 'text-blue-700';
+                                borderColor = 'border-blue-400';
+                                icon = '🏖️';
+                                break;
+                            case 'HL':
+                                cardBg = 'bg-green-100';
+                                shiftColor = 'text-green-700';
+                                borderColor = 'border-green-400';
+                                icon = '🎉';
+                                break;
+                            case 'SL':
+                                cardBg = 'bg-orange-100';
+                                shiftColor = 'text-orange-700';
+                                borderColor = 'border-orange-400';
+                                icon = '🏥';
+                                break;
+                        }
+                    }
+                    
+                    const dateObj = new Date(date + 'T00:00:00');
+                    const isToday = getLocalDateString(new Date()) === date;
+                    const todayBorder = isToday ? 'ring-2 ring-[#DA291C] ring-offset-2' : '';
+                    const plannedStyle = isPlanned ? 'opacity-70' : '';
+                    
+                    html += `
+                        <div class="relative ${cardBg} ${plannedStyle} rounded-xl p-4 border-2 ${borderColor} ${todayBorder} transition-all hover:shadow-md">
+                            ${isToday ? '<span class="absolute -top-2 -right-2 bg-[#DA291C] text-white text-xs px-2 py-0.5 rounded-full font-semibold">Today</span>' : ''}
+                            <div class="text-center">
+                                <p class="text-xs text-gray-500 uppercase tracking-wide">${daysShort[i]}</p>
+                                <p class="text-2xl font-bold ${scheduleData.shift === 'GY' ? 'text-white' : 'text-gray-800'}">${dateObj.getDate()}</p>
+                                <p class="text-xs text-gray-400">${dateObj.toLocaleDateString('en-US', { month: 'short' })}</p>
+                            </div>
+                            <div class="mt-3 text-center">
+                                ${scheduleData.shift ? `
+                                    <p class="text-2xl mb-1">${icon}</p>
+                                    <p class="font-bold ${shiftColor}">${scheduleData.shift}</p>
+                                    ${scheduleData.time && scheduleData.time !== 'Planned' ? `<p class="text-xs ${scheduleData.shift === 'GY' ? 'text-gray-300' : 'text-gray-500'} mt-1">${scheduleData.time}</p>` : ''}
+                                    ${isPlanned ? `<p class="text-xs italic text-gray-400 mt-1">(Planned)</p>` : ''}
+                                ` : `
+                                    <p class="text-gray-400 text-sm mt-2">No schedule</p>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+                
+                // Update summary
+                document.getElementById('my-schedule-total-days').textContent = workingDays;
+                document.getElementById('my-schedule-off-days').textContent = offDays;
+                document.getElementById('my-schedule-leave-days').textContent = leaveDays;
+                document.getElementById('my-schedule-gy-days').textContent = gyDays;
             }
 
             function renderWeeklySchedule() {
@@ -2110,6 +2365,16 @@
                     loadScheduleForWeek(weekDates);
                 });
 
+                // My Schedule week picker
+                const myScheduleWeekPicker = document.getElementById('my-schedule-week-picker');
+                myScheduleWeekPicker?.addEventListener('change', () => {
+                    const selectedDate = new Date(myScheduleWeekPicker.value + 'T00:00:00');
+                    const weekDates = getWeekDateStrings(selectedDate);
+                    loadScheduleForWeek(weekDates).then(() => {
+                        renderMySchedule();
+                    });
+                });
+
                 document.getElementById('modal-shift-select')?.addEventListener('change', (e) => {
                     const timeContainer = document.getElementById('modal-time-container');
                     if (['VL', 'HL', 'SL', 'OFF', 'Leave', ''].includes(e.target.value)) {
@@ -2639,11 +2904,19 @@
                         UI.loginScreen.style.display = 'none';
                         UI.appContainer.style.display = 'flex';
                         
+                        // Store current user email
+                        appState.currentUserEmail = user.email;
+                        
                         const userDocRef = db.collection('users').doc(user.uid);
                         const userDoc = await userDocRef.get();
                         
                         if (userDoc.exists) {
-                            appState.accessLevel = userDoc.data().access_level || 3;
+                            const userData = userDoc.data();
+                            appState.accessLevel = userData.access_level || 3;
+                            // Check if user has a linked manager_id
+                            if (userData.manager_id) {
+                                appState.currentUserManagerId = userData.manager_id;
+                            }
                         } else {
                             const newUser = {
                                 username: user.email,
@@ -2660,6 +2933,30 @@
                         UI.userGreeting.textContent = `Welcome, ${user.email.split('@')[0]}`;
                         await loadInitialData();
                         
+                        // After loading data, try to match user email with a manager name
+                        if (!appState.currentUserManagerId && appState.managers.length > 0) {
+                            const emailUsername = user.email.split('@')[0].toLowerCase();
+                            const matchedManager = appState.managers.find(m => 
+                                m.name.toLowerCase().replace(/\s+/g, '') === emailUsername ||
+                                m.name.toLowerCase().split(' ')[0] === emailUsername ||
+                                m.name.toLowerCase() === emailUsername
+                            );
+                            if (matchedManager) {
+                                appState.currentUserManagerId = matchedManager.id;
+                                appState.currentUserManagerName = matchedManager.name;
+                            }
+                        } else if (appState.currentUserManagerId) {
+                            const manager = appState.managers.find(m => m.id === appState.currentUserManagerId);
+                            if (manager) {
+                                appState.currentUserManagerName = manager.name;
+                            }
+                        }
+                        
+                        // Render My Schedule if on schedule view
+                        if (appState.currentView === 'manager-schedule') {
+                            renderMySchedule();
+                        }
+                        
                     } catch (error) {
                         console.error("Authentication process failed:", error);
                         showToast("Could not complete login process. Please contact admin.", "error");
@@ -2670,6 +2967,9 @@
                     UI.appContainer.style.display = 'none';
                     UI.loadingOverlay.style.display = 'none';
                     appState.accessLevel = 3;
+                    appState.currentUserEmail = null;
+                    appState.currentUserManagerId = null;
+                    appState.currentUserManagerName = null;
                 }
             });
 
