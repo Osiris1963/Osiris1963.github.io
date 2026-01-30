@@ -594,9 +594,29 @@
                                     <p class="text-sm text-gray-500">Your weekly duty assignments</p>
                                 </div>
                             </div>
-                            <div class="flex items-center">
-                                <label for="my-schedule-week-picker" class="font-semibold mr-2 text-sm">Week:</label>
-                                <input type="date" id="my-schedule-week-picker" class="p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none text-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="flex items-center">
+                                    <label for="my-schedule-week-picker" class="font-semibold mr-2 text-sm">Week:</label>
+                                    <input type="date" id="my-schedule-week-picker" class="p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none text-sm">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Manager Profile Selector (shown when not auto-matched) -->
+                        <div id="my-schedule-profile-selector" class="hidden mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-blue-800">Select Your Profile</p>
+                                    <p class="text-sm text-blue-600">Choose your manager profile to view your schedule</p>
+                                </div>
+                                <div class="flex items-center gap-2 w-full sm:w-auto">
+                                    <select id="my-schedule-manager-select" class="flex-1 sm:w-48 p-2 rounded-lg border-2 border-blue-300 focus:border-blue-500 focus:outline-none text-sm">
+                                        <option value="">-- Select Manager --</option>
+                                    </select>
+                                    <button id="my-schedule-save-profile" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700">
+                                        Save
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         
@@ -1517,6 +1537,8 @@
                 const nameEl = document.getElementById('my-schedule-name');
                 const avatarEl = document.getElementById('my-schedule-avatar');
                 const weekPicker = document.getElementById('my-schedule-week-picker');
+                const profileSelector = document.getElementById('my-schedule-profile-selector');
+                const managerSelect = document.getElementById('my-schedule-manager-select');
                 
                 if (!container) return;
                 
@@ -1530,9 +1552,20 @@
                 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
                 const daysShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
                 
-                // Check if user is linked to a manager
+                // Check if user is linked to a manager - try localStorage first
                 if (!appState.currentUserManagerId) {
-                    // Try to find by email match
+                    const savedManagerId = localStorage.getItem('myScheduleManagerId');
+                    if (savedManagerId) {
+                        const savedManager = appState.managers.find(m => m.id === savedManagerId);
+                        if (savedManager) {
+                            appState.currentUserManagerId = savedManagerId;
+                            appState.currentUserManagerName = savedManager.name;
+                        }
+                    }
+                }
+                
+                // If still not linked, try email match
+                if (!appState.currentUserManagerId) {
                     const emailUsername = (appState.currentUserEmail || '').split('@')[0].toLowerCase();
                     const matchedManager = appState.managers.find(m => 
                         m.name.toLowerCase().replace(/\s+/g, '') === emailUsername ||
@@ -1543,6 +1576,21 @@
                         appState.currentUserManagerId = matchedManager.id;
                         appState.currentUserManagerName = matchedManager.name;
                     }
+                }
+                
+                // Populate the manager selector dropdown
+                if (managerSelect) {
+                    managerSelect.innerHTML = '<option value="">-- Select Your Profile --</option>' + 
+                        appState.managers.map(m => 
+                            `<option value="${m.id}" ${m.id === appState.currentUserManagerId ? 'selected' : ''}>${m.name}</option>`
+                        ).join('');
+                }
+                
+                // Show/hide profile selector based on whether manager is linked
+                if (!appState.currentUserManagerId && profileSelector) {
+                    profileSelector.classList.remove('hidden');
+                } else if (profileSelector) {
+                    profileSelector.classList.add('hidden');
                 }
                 
                 // Update header with manager name
@@ -1561,8 +1609,8 @@
                             <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                             </svg>
-                            <h3 class="text-lg font-semibold text-gray-500 mb-2">No Manager Profile Linked</h3>
-                            <p class="text-gray-400 text-sm max-w-md mx-auto">Your account is not linked to a manager profile. Please contact your administrator to link your account.</p>
+                            <h3 class="text-lg font-semibold text-gray-500 mb-2">Select Your Profile Above</h3>
+                            <p class="text-gray-400 text-sm max-w-md mx-auto">Choose your manager profile from the dropdown above to view your weekly schedule.</p>
                         </div>
                     `;
                     // Reset summary
@@ -2373,6 +2421,39 @@
                     loadScheduleForWeek(weekDates).then(() => {
                         renderMySchedule();
                     });
+                });
+
+                // My Schedule profile save button
+                document.getElementById('my-schedule-save-profile')?.addEventListener('click', () => {
+                    const select = document.getElementById('my-schedule-manager-select');
+                    const managerId = select?.value;
+                    if (managerId) {
+                        const manager = appState.managers.find(m => m.id === managerId);
+                        if (manager) {
+                            appState.currentUserManagerId = managerId;
+                            appState.currentUserManagerName = manager.name;
+                            // Save to localStorage for persistence
+                            localStorage.setItem('myScheduleManagerId', managerId);
+                            showToast(`Profile set to ${manager.name}`, 'success');
+                            renderMySchedule();
+                        }
+                    } else {
+                        showToast('Please select a manager profile', 'error');
+                    }
+                });
+
+                // My Schedule manager select change - auto-save
+                document.getElementById('my-schedule-manager-select')?.addEventListener('change', (e) => {
+                    const managerId = e.target.value;
+                    if (managerId) {
+                        const manager = appState.managers.find(m => m.id === managerId);
+                        if (manager) {
+                            appState.currentUserManagerId = managerId;
+                            appState.currentUserManagerName = manager.name;
+                            localStorage.setItem('myScheduleManagerId', managerId);
+                            renderMySchedule();
+                        }
+                    }
                 });
 
                 document.getElementById('modal-shift-select')?.addEventListener('change', (e) => {
