@@ -728,16 +728,25 @@
                     <p class="text-gray-600">Plot daily shifts and track leaves for managers. Planned leaves from the "HL & VL Schedule" will appear here with a dashed border; click to confirm them.</p>
                 </div>
                 <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-                    <div id="manager-schedule-tabs" class="border-b border-gray-200 mb-6">
-                        <nav class="-mb-px flex space-x-2 overflow-x-auto hide-scrollbar" aria-label="Tabs">
-                            <button data-tab="my-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm active">My Schedule</button>
-                            <button data-tab="weekly-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">Weekly Schedule</button>
-                            <button data-tab="shift-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">Shift Schedule</button>
-                            <button data-tab="leave-schedule" class="schedule-tab whitespace-nowrap font-medium text-sm">HL & VL Schedule</button>
-                            <button data-tab="leave-tracking" class="schedule-tab whitespace-nowrap font-medium text-sm">Leave Tracking</button>
-                            <button data-tab="gy-ot" class="schedule-tab whitespace-nowrap font-medium text-sm">GY & OT</button>
-                            <button data-tab="manage-managers" class="schedule-tab whitespace-nowrap font-medium text-sm">Manage Managers</button>
-                        </nav>
+                    <!-- Dropdown Navigation + Request Button -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                            <label for="schedule-tab-select" class="font-semibold text-gray-700 whitespace-nowrap">View:</label>
+                            <select id="schedule-tab-select" class="flex-1 sm:w-64 p-2.5 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none font-medium bg-white">
+                                <option value="my-schedule">📅 My Schedule</option>
+                                <option value="weekly-schedule">📊 Weekly Schedule</option>
+                                <option value="shift-schedule">🔄 Shift Schedule</option>
+                                <option value="leave-schedule">🏖️ HL & VL Schedule</option>
+                                <option value="leave-tracking">📋 Leave Tracking</option>
+                                <option value="gy-ot">🌙 GY & OT</option>
+                                <option value="schedule-requests">📝 Schedule Requests</option>
+                                <option value="manage-managers">⚙️ Manage Managers</option>
+                            </select>
+                        </div>
+                        <button id="new-schedule-request-btn" class="w-full sm:w-auto px-4 py-2.5 bg-[#DA291C] text-white rounded-lg font-semibold text-sm hover:bg-red-700 transition flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            New Request
+                        </button>
                     </div>
 
                     <div id="my-schedule-content" class="schedule-content">
@@ -900,20 +909,31 @@
                                 <div id="manager-list-container" class="space-y-3"></div>
                             </div>
                         </div>
+                    </div>
+                    
+                    <!-- Schedule Requests Tab Content -->
+                    <div id="schedule-requests-content" class="schedule-content hidden">
+                        <div class="mb-6">
+                            <h3 class="text-xl font-bold mb-2">Schedule Requests</h3>
+                            <p class="text-gray-500 text-sm">View and manage schedule change requests from team members.</p>
+                        </div>
                         
-                        <!-- Leave Request Section -->
-                        <div class="mt-8 pt-8 border-t border-gray-200">
-                            <div class="flex justify-between items-center mb-4">
-                                <div>
-                                    <h3 class="text-xl font-bold">Leave Requests</h3>
-                                    <p class="text-gray-500 text-sm">Auto-approval: Single-day VL requests are auto-approved if no conflict exists</p>
-                                </div>
-                                <button id="new-leave-request-btn" class="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold text-sm hover:bg-green-700 transition">
-                                    + New Request
-                                </button>
+                        <!-- Pending Requests (Admin View) -->
+                        <div id="pending-requests-section" class="mb-8">
+                            <h4 class="font-bold text-lg mb-3 flex items-center gap-2">
+                                <span class="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></span>
+                                Pending Approval
+                            </h4>
+                            <div id="pending-requests-container" class="space-y-3">
+                                <p class="text-gray-500 text-center py-4 bg-gray-50 rounded-lg">No pending requests</p>
                             </div>
-                            <div id="leave-requests-container" class="space-y-3">
-                                <p class="text-gray-500 text-center py-4">No pending leave requests</p>
+                        </div>
+                        
+                        <!-- My Requests (User View) -->
+                        <div id="my-requests-section">
+                            <h4 class="font-bold text-lg mb-3">My Requests</h4>
+                            <div id="my-requests-container" class="space-y-3">
+                                <p class="text-gray-500 text-center py-4 bg-gray-50 rounded-lg">You haven't made any requests yet</p>
                             </div>
                         </div>
                     </div>
@@ -1202,59 +1222,112 @@
         </div>
     </div>
 
-    <!-- Leave Request Modal -->
-    <div id="leave-request-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <!-- Edit Manager Modal -->
+    <div id="edit-manager-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
         <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-xl bg-white">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-900">Leave Request</h3>
-                <button id="leave-request-modal-close" class="text-gray-400 hover:text-gray-600">
+                <h3 class="text-xl font-bold text-gray-900">Edit Manager</h3>
+                <button id="edit-manager-modal-close" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label for="edit-manager-name" class="block font-semibold mb-1">Manager Name</label>
+                    <input type="text" id="edit-manager-name" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none" required>
+                </div>
+                <div>
+                    <label for="edit-manager-birthday" class="block font-semibold mb-1">Birthday</label>
+                    <input type="date" id="edit-manager-birthday" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                </div>
+                <div>
+                    <label for="edit-manager-hire-date" class="block font-semibold mb-1">Hire Date (Work Anniversary)</label>
+                    <input type="date" id="edit-manager-hire-date" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                </div>
+                <div>
+                    <label for="edit-manager-position" class="block font-semibold mb-1">Position</label>
+                    <select id="edit-manager-position" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                        <option value="SM">Shift Manager (SM)</option>
+                        <option value="SL">Shift Leader (SL)</option>
+                        <option value="ASM">Assistant Store Manager (ASM)</option>
+                        <option value="Store Manager">Store Manager</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-6 space-y-2">
+                <button id="edit-manager-save-btn" class="w-full px-4 py-3 bg-[#DA291C] text-white text-base font-bold rounded-lg hover:bg-red-700 transition">Save Changes</button>
+                <button id="edit-manager-cancel-btn" class="w-full px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-lg hover:bg-gray-300 transition">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Request Modal -->
+    <div id="schedule-request-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-md shadow-lg rounded-xl bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900">📝 New Schedule Request</h3>
+                <button id="schedule-request-modal-close" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
             
-            <!-- Auto-approval info -->
-            <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p class="text-sm text-green-800">✓ <strong>Auto-approval:</strong> Single-day VL requests are automatically approved if no schedule conflict exists.</p>
+            <!-- Info Box -->
+            <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p class="text-sm text-blue-800">📌 Your request will be reviewed by the admin. Once approved, it will automatically appear in the Weekly Schedule.</p>
             </div>
             
             <div class="space-y-4">
                 <div>
-                    <label class="block font-semibold mb-1">Manager</label>
-                    <select id="leave-request-manager" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none"></select>
-                </div>
-                <div>
-                    <label class="block font-semibold mb-1">Leave Type</label>
-                    <select id="leave-request-type" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
-                        <option value="VL">Vacation Leave (VL)</option>
-                        <option value="SL">Sick Leave (SL)</option>
-                        <option value="HL">Holiday Leave (HL)</option>
-                        <option value="EL">Emergency Leave (EL)</option>
+                    <label class="block font-semibold mb-1">Request Type</label>
+                    <select id="schedule-request-type" class="w-full p-2.5 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                        <option value="">-- Select Request Type --</option>
+                        <option value="rest-day">🏠 Request Rest Day (OFF)</option>
+                        <option value="pull-out">🚪 Request Pull-out (Early Leave)</option>
+                        <option value="swap-shift">🔄 Request Shift Swap</option>
+                        <option value="change-time">⏰ Request Time Change</option>
+                        <option value="vl">🏖️ Vacation Leave (VL)</option>
+                        <option value="sl">🏥 Sick Leave (SL)</option>
+                        <option value="others">📋 Others</option>
                     </select>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block font-semibold mb-1">Start Date</label>
-                        <input type="date" id="leave-request-start" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block font-semibold mb-1">End Date</label>
-                        <input type="date" id="leave-request-end" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
-                    </div>
-                </div>
+                
                 <div>
-                    <label class="block font-semibold mb-1">Reason (Optional)</label>
-                    <textarea id="leave-request-reason" rows="2" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none resize-none" placeholder="Enter reason for leave..."></textarea>
+                    <label class="block font-semibold mb-1">Requesting For</label>
+                    <select id="schedule-request-manager" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none"></select>
                 </div>
                 
-                <!-- Conflict Warning -->
-                <div id="leave-conflict-warning" class="hidden p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p class="text-sm text-yellow-800">⚠️ <strong>Warning:</strong> <span id="leave-conflict-message">There may be a scheduling conflict.</span></p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-semibold mb-1">Date</label>
+                        <input type="date" id="schedule-request-date" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                    </div>
+                    <div id="schedule-request-end-date-container">
+                        <label class="block font-semibold mb-1">End Date <span class="text-gray-400 text-xs">(if multiple days)</span></label>
+                        <input type="date" id="schedule-request-end-date" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                    </div>
+                </div>
+                
+                <!-- Swap With (shown only for shift swap) -->
+                <div id="schedule-request-swap-container" class="hidden">
+                    <label class="block font-semibold mb-1">Swap Shift With</label>
+                    <select id="schedule-request-swap-with" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none"></select>
+                </div>
+                
+                <!-- Preferred Time (shown for time change) -->
+                <div id="schedule-request-time-container" class="hidden">
+                    <label class="block font-semibold mb-1">Preferred Time</label>
+                    <input type="text" id="schedule-request-time" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none" placeholder="e.g., 6am-3pm">
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-1">Reason / Details</label>
+                    <textarea id="schedule-request-reason" rows="3" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none resize-none" placeholder="Please explain your request..."></textarea>
                 </div>
             </div>
             
             <div class="mt-6 space-y-2">
-                <button id="leave-request-submit-btn" class="w-full px-4 py-3 bg-green-600 text-white text-base font-bold rounded-lg hover:bg-green-700 transition">Submit Request</button>
-                <button id="leave-request-cancel-btn" class="w-full px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-lg hover:bg-gray-300 transition">Cancel</button>
+                <button id="schedule-request-submit-btn" class="w-full px-4 py-3 bg-[#DA291C] text-white text-base font-bold rounded-lg hover:bg-red-700 transition">Submit Request</button>
+                <button id="schedule-request-cancel-btn" class="w-full px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-lg hover:bg-gray-300 transition">Cancel</button>
             </div>
         </div>
     </div>
@@ -1404,7 +1477,7 @@
                         evalHistoricalSnapshot,
                         managersSnapshot,
                         leavesSnapshot,
-                        leaveRequestsSnapshot
+                        scheduleRequestsSnapshot
                     ] = await Promise.all([
                         db.collection("forecast_log").orderBy("generated_on", "desc").limit(15).get(),
                         db.collection("historical_data").orderBy("date", "desc").get(),
@@ -1414,7 +1487,7 @@
                         db.collection("historical_data").where("date", ">=", thirtyFiveDaysAgo).orderBy("date", "desc").get(),
                         db.collection("managers").orderBy("sortOrder").get(),
                         db.collection("plotted_leaves").get(),
-                        db.collection("leave_requests").orderBy("requestDate", "desc").get()
+                        db.collection("schedule_requests").orderBy("createdAt", "desc").get()
                     ]);
 
                     appState.historicalData = allHistoricalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1422,7 +1495,7 @@
                     appState.usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     appState.managers = managersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     appState.plottedLeaves = leavesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    appState.leaveRequests = leaveRequestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    appState.leaveRequests = scheduleRequestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     
                     processForecastData(dashboardLogSnapshot);
                     processEvaluationData(evalLogSnapshot, evalHistoricalSnapshot);
@@ -1814,11 +1887,35 @@
             }
 
             function renderManagerSchedule() {
-                const activeTab = document.querySelector('#manager-schedule-tabs .active')?.dataset.tab || 'my-schedule';
+                const dropdown = document.getElementById('schedule-tab-select');
+                const activeTab = dropdown?.value || 'my-schedule';
+                
+                // Hide all content sections first
+                document.querySelectorAll('.schedule-content').forEach(content => content.classList.add('hidden'));
+                
+                // Show selected content
+                const selectedContent = document.getElementById(`${activeTab}-content`);
+                if (selectedContent) {
+                    selectedContent.classList.remove('hidden');
+                }
+                
+                // Hide manage-managers option for non-admins
+                const manageManagersOption = dropdown?.querySelector('option[value="manage-managers"]');
+                if (manageManagersOption) {
+                    manageManagersOption.style.display = appState.accessLevel === 1 ? 'block' : 'none';
+                }
                 
                 switch(activeTab) {
                     case 'my-schedule':
-                        renderMySchedule();
+                        // Load schedule data for current week first, then render
+                        const myWeekPicker = document.getElementById('my-schedule-week-picker');
+                        if (!myWeekPicker.value) {
+                            myWeekPicker.value = getLocalDateString(new Date());
+                        }
+                        const myWeekDates = getWeekDateStrings(new Date(myWeekPicker.value + 'T00:00:00'));
+                        loadScheduleForWeek(myWeekDates).then(() => {
+                            renderMySchedule();
+                        });
                         break;
                     case 'weekly-schedule':
                         const weekPicker = document.getElementById('week-picker');
@@ -1836,6 +1933,9 @@
                         break;
                     case 'gy-ot':
                         renderGyOtTracking();
+                        break;
+                    case 'schedule-requests':
+                        renderScheduleRequests();
                         break;
                     case 'manage-managers':
                         renderManagerList();
@@ -1888,126 +1988,164 @@
                     `;
                     container.appendChild(div);
                 });
-                
-                // Render leave requests
-                renderLeaveRequests();
             }
             
-            // --- LEAVE REQUEST FUNCTIONS ---
-            function openLeaveRequestModal() {
-                const modal = document.getElementById('leave-request-modal');
-                const managerSelect = document.getElementById('leave-request-manager');
+            // --- EDIT MANAGER FUNCTIONS ---
+            function openEditManagerModal(managerId) {
+                const manager = appState.managers.find(m => m.id === managerId);
+                if (!manager) return;
                 
-                // Populate manager dropdown
-                managerSelect.innerHTML = appState.managers.map(m => 
-                    `<option value="${m.id}">${m.name}</option>`
-                ).join('');
+                const modal = document.getElementById('edit-manager-modal');
+                modal.dataset.managerId = managerId;
                 
-                // Set default dates
-                const today = getLocalDateString(new Date());
-                document.getElementById('leave-request-start').value = today;
-                document.getElementById('leave-request-end').value = today;
-                document.getElementById('leave-request-type').value = 'VL';
-                document.getElementById('leave-request-reason').value = '';
-                document.getElementById('leave-conflict-warning').classList.add('hidden');
+                // Populate form with current values
+                document.getElementById('edit-manager-name').value = manager.name || '';
+                document.getElementById('edit-manager-birthday').value = manager.birthday || '';
+                document.getElementById('edit-manager-hire-date').value = manager.hireDate || '';
+                document.getElementById('edit-manager-position').value = manager.position || 'SM';
                 
                 modal.classList.remove('hidden');
             }
             
-            function checkLeaveConflict() {
-                const managerId = document.getElementById('leave-request-manager').value;
-                const startDate = document.getElementById('leave-request-start').value;
-                const endDate = document.getElementById('leave-request-end').value;
-                const warning = document.getElementById('leave-conflict-warning');
-                const message = document.getElementById('leave-conflict-message');
+            async function saveEditManager() {
+                const modal = document.getElementById('edit-manager-modal');
+                const managerId = modal.dataset.managerId;
                 
-                if (!managerId || !startDate || !endDate) {
-                    warning.classList.add('hidden');
-                    return;
+                const name = document.getElementById('edit-manager-name').value.trim();
+                if (!name) {
+                    return showToast('Manager name is required', 'error');
                 }
                 
-                // Check for existing scheduled shifts
-                const start = new Date(startDate + 'T00:00:00');
-                const end = new Date(endDate + 'T00:00:00');
-                let hasConflict = false;
-                let conflictDates = [];
+                const updateData = {
+                    name: name,
+                    birthday: document.getElementById('edit-manager-birthday').value || null,
+                    hireDate: document.getElementById('edit-manager-hire-date').value || null,
+                    position: document.getElementById('edit-manager-position').value || 'SM'
+                };
                 
-                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                    const dateStr = getLocalDateString(d);
-                    const scheduleKey = `${managerId}_${dateStr}`;
-                    if (appState.managerSchedules[scheduleKey] && 
-                        !['OFF', 'VL', 'SL', 'HL', 'Leave'].includes(appState.managerSchedules[scheduleKey].shift)) {
-                        hasConflict = true;
-                        conflictDates.push(dateStr);
-                    }
-                }
-                
-                // Also check how many managers would be off
-                // (simplified - would need more complex logic in production)
-                
-                if (hasConflict) {
-                    message.textContent = `Scheduled shifts exist on: ${conflictDates.join(', ')}`;
-                    warning.classList.remove('hidden');
-                } else {
-                    warning.classList.add('hidden');
+                try {
+                    await db.collection('managers').doc(managerId).update(updateData);
+                    showToast('Manager updated successfully!', 'success');
+                    modal.classList.add('hidden');
+                    loadInitialData();
+                } catch (error) {
+                    console.error(error);
+                    showToast('Error updating manager', 'error');
                 }
             }
             
-            async function submitLeaveRequest() {
-                const managerId = document.getElementById('leave-request-manager').value;
-                const leaveType = document.getElementById('leave-request-type').value;
-                const startDate = document.getElementById('leave-request-start').value;
-                const endDate = document.getElementById('leave-request-end').value;
-                const reason = document.getElementById('leave-request-reason').value;
+            // --- SCHEDULE REQUEST FUNCTIONS ---
+            function openScheduleRequestModal() {
+                const modal = document.getElementById('schedule-request-modal');
+                const managerSelect = document.getElementById('schedule-request-manager');
+                const swapSelect = document.getElementById('schedule-request-swap-with');
                 
-                if (!managerId || !startDate || !endDate) {
+                // Populate manager dropdowns
+                managerSelect.innerHTML = appState.managers.map(m => 
+                    `<option value="${m.id}" ${m.id === appState.currentUserManagerId ? 'selected' : ''}>${m.name}</option>`
+                ).join('');
+                
+                swapSelect.innerHTML = '<option value="">-- Select Manager --</option>' + appState.managers.map(m => 
+                    `<option value="${m.id}">${m.name}</option>`
+                ).join('');
+                
+                // Set default date
+                const today = getLocalDateString(new Date());
+                document.getElementById('schedule-request-date').value = today;
+                document.getElementById('schedule-request-end-date').value = '';
+                document.getElementById('schedule-request-type').value = '';
+                document.getElementById('schedule-request-reason').value = '';
+                document.getElementById('schedule-request-time').value = '';
+                
+                // Hide conditional fields
+                document.getElementById('schedule-request-swap-container').classList.add('hidden');
+                document.getElementById('schedule-request-time-container').classList.add('hidden');
+                
+                modal.classList.remove('hidden');
+            }
+            
+            function handleScheduleRequestTypeChange() {
+                const type = document.getElementById('schedule-request-type').value;
+                const swapContainer = document.getElementById('schedule-request-swap-container');
+                const timeContainer = document.getElementById('schedule-request-time-container');
+                const endDateContainer = document.getElementById('schedule-request-end-date-container');
+                
+                // Reset visibility
+                swapContainer.classList.add('hidden');
+                timeContainer.classList.add('hidden');
+                endDateContainer.style.display = 'block';
+                
+                switch(type) {
+                    case 'swap-shift':
+                        swapContainer.classList.remove('hidden');
+                        endDateContainer.style.display = 'none';
+                        break;
+                    case 'change-time':
+                        timeContainer.classList.remove('hidden');
+                        endDateContainer.style.display = 'none';
+                        break;
+                    case 'pull-out':
+                    case 'rest-day':
+                        endDateContainer.style.display = 'none';
+                        break;
+                }
+            }
+            
+            async function submitScheduleRequest() {
+                const requestType = document.getElementById('schedule-request-type').value;
+                const managerId = document.getElementById('schedule-request-manager').value;
+                const requestDate = document.getElementById('schedule-request-date').value;
+                const endDate = document.getElementById('schedule-request-end-date').value;
+                const reason = document.getElementById('schedule-request-reason').value;
+                
+                if (!requestType) {
+                    return showToast('Please select a request type', 'error');
+                }
+                if (!managerId || !requestDate) {
                     return showToast('Please fill all required fields', 'error');
                 }
                 
                 const manager = appState.managers.find(m => m.id === managerId);
-                const start = new Date(startDate + 'T00:00:00');
-                const end = new Date(endDate + 'T00:00:00');
-                const dayCount = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
                 
-                // Auto-approval logic: Single-day VL with no conflicts
-                const isSingleDay = dayCount === 1;
-                const isVL = leaveType === 'VL';
-                const hasNoConflict = document.getElementById('leave-conflict-warning').classList.contains('hidden');
-                const autoApprove = isSingleDay && isVL && hasNoConflict;
-                
-                const requestData = {
-                    managerId,
-                    managerName: manager?.name,
-                    leaveType,
-                    startDate,
-                    endDate,
-                    dayCount,
-                    reason,
-                    status: autoApprove ? 'approved' : 'pending',
-                    requestDate: firebase.firestore.FieldValue.serverTimestamp(),
-                    autoApproved: autoApprove,
-                    approvedBy: autoApprove ? 'System (Auto-approved)' : null,
-                    approvedDate: autoApprove ? firebase.firestore.FieldValue.serverTimestamp() : null
+                // Get request type label
+                const typeLabels = {
+                    'rest-day': 'Rest Day (OFF)',
+                    'pull-out': 'Pull-out',
+                    'swap-shift': 'Shift Swap',
+                    'change-time': 'Time Change',
+                    'vl': 'Vacation Leave',
+                    'sl': 'Sick Leave',
+                    'others': 'Other Request'
                 };
                 
+                const requestData = {
+                    type: requestType,
+                    typeLabel: typeLabels[requestType] || requestType,
+                    managerId,
+                    managerName: manager?.name,
+                    requestDate,
+                    endDate: endDate || requestDate,
+                    reason,
+                    status: 'pending',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdBy: appState.currentUserEmail
+                };
+                
+                // Add extra fields based on type
+                if (requestType === 'swap-shift') {
+                    const swapWithId = document.getElementById('schedule-request-swap-with').value;
+                    const swapWithManager = appState.managers.find(m => m.id === swapWithId);
+                    requestData.swapWithId = swapWithId;
+                    requestData.swapWithName = swapWithManager?.name;
+                }
+                if (requestType === 'change-time') {
+                    requestData.preferredTime = document.getElementById('schedule-request-time').value;
+                }
+                
                 try {
-                    await db.collection('leave_requests').add(requestData);
-                    
-                    // If auto-approved, also add to plotted_leaves
-                    if (autoApprove) {
-                        await db.collection('plotted_leaves').add({
-                            managerId,
-                            managerName: manager?.name,
-                            leaveType,
-                            startDate,
-                            endDate
-                        });
-                        showToast('✅ Leave auto-approved and added to calendar!', 'success');
-                    } else {
-                        showToast('Leave request submitted for approval', 'success');
-                    }
-                    
-                    document.getElementById('leave-request-modal').classList.add('hidden');
+                    await db.collection('schedule_requests').add(requestData);
+                    showToast('Request submitted successfully!', 'success');
+                    document.getElementById('schedule-request-modal').classList.add('hidden');
                     loadInitialData();
                 } catch (error) {
                     console.error(error);
@@ -2015,61 +2153,148 @@
                 }
             }
             
-            function renderLeaveRequests() {
-                const container = document.getElementById('leave-requests-container');
-                if (!container) return;
+            function renderScheduleRequests() {
+                const pendingContainer = document.getElementById('pending-requests-container');
+                const myContainer = document.getElementById('my-requests-container');
+                const pendingSection = document.getElementById('pending-requests-section');
                 
-                const pendingRequests = appState.leaveRequests.filter(r => r.status === 'pending');
+                if (!pendingContainer || !myContainer) return;
                 
-                if (pendingRequests.length === 0) {
-                    container.innerHTML = '<p class="text-gray-500 text-center py-4">No pending leave requests</p>';
-                    return;
+                // Show pending section only for admins
+                if (pendingSection) {
+                    pendingSection.style.display = appState.accessLevel === 1 ? 'block' : 'none';
                 }
                 
-                container.innerHTML = pendingRequests.map(req => `
-                    <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-xl">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="font-bold text-gray-800">${req.managerName}</p>
-                                <p class="text-sm text-gray-600">${req.leaveType} • ${req.dayCount} day${req.dayCount > 1 ? 's' : ''}</p>
-                                <p class="text-sm text-gray-500">${req.startDate} ${req.endDate !== req.startDate ? '→ ' + req.endDate : ''}</p>
-                                ${req.reason ? `<p class="text-xs text-gray-400 mt-1">"${req.reason}"</p>` : ''}
-                            </div>
-                            <div class="flex space-x-2">
-                                <button onclick="approveLeaveRequest('${req.id}')" class="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600">
-                                    ✓ Approve
-                                </button>
-                                <button onclick="rejectLeaveRequest('${req.id}')" class="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600">
-                                    ✗ Reject
-                                </button>
+                // Filter requests
+                const pendingRequests = appState.leaveRequests.filter(r => r.status === 'pending');
+                const myRequests = appState.leaveRequests.filter(r => 
+                    r.managerId === appState.currentUserManagerId || 
+                    r.createdBy === appState.currentUserEmail
+                );
+                
+                // Render pending requests (admin view)
+                if (pendingRequests.length === 0) {
+                    pendingContainer.innerHTML = '<p class="text-gray-500 text-center py-4 bg-gray-50 rounded-lg">No pending requests</p>';
+                } else {
+                    pendingContainer.innerHTML = pendingRequests.map(req => `
+                        <div class="bg-yellow-50 border border-yellow-300 p-4 rounded-xl">
+                            <div class="flex flex-col sm:flex-row justify-between items-start gap-3">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded text-xs font-semibold">${req.typeLabel || req.leaveType || 'Request'}</span>
+                                        <span class="text-xs text-gray-500">${req.requestDate || req.startDate}</span>
+                                    </div>
+                                    <p class="font-bold text-gray-800">${req.managerName}</p>
+                                    ${req.reason ? `<p class="text-sm text-gray-600 mt-1">"${req.reason}"</p>` : ''}
+                                    ${req.swapWithName ? `<p class="text-sm text-gray-500">Swap with: ${req.swapWithName}</p>` : ''}
+                                    ${req.preferredTime ? `<p class="text-sm text-gray-500">Preferred: ${req.preferredTime}</p>` : ''}
+                                </div>
+                                <div class="flex gap-2 w-full sm:w-auto">
+                                    <button onclick="approveScheduleRequest('${req.id}')" class="flex-1 sm:flex-none px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-semibold hover:bg-green-600 transition">
+                                        ✓ Approve
+                                    </button>
+                                    <button onclick="rejectScheduleRequest('${req.id}')" class="flex-1 sm:flex-none px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-semibold hover:bg-red-600 transition">
+                                        ✗ Reject
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `).join('');
+                    `).join('');
+                }
+                
+                // Render my requests
+                if (myRequests.length === 0) {
+                    myContainer.innerHTML = '<p class="text-gray-500 text-center py-4 bg-gray-50 rounded-lg">You haven\'t made any requests yet</p>';
+                } else {
+                    myContainer.innerHTML = myRequests.map(req => {
+                        const statusColors = {
+                            'pending': 'bg-yellow-100 text-yellow-800',
+                            'approved': 'bg-green-100 text-green-800',
+                            'rejected': 'bg-red-100 text-red-800'
+                        };
+                        const statusIcons = {
+                            'pending': '⏳',
+                            'approved': '✅',
+                            'rejected': '❌'
+                        };
+                        return `
+                            <div class="bg-white border border-gray-200 p-4 rounded-xl">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs font-semibold">${req.typeLabel || req.leaveType || 'Request'}</span>
+                                            <span class="px-2 py-0.5 ${statusColors[req.status]} rounded text-xs font-semibold">${statusIcons[req.status]} ${req.status}</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600">${req.requestDate || req.startDate}${req.endDate && req.endDate !== req.requestDate ? ' → ' + req.endDate : ''}</p>
+                                        ${req.reason ? `<p class="text-xs text-gray-500 mt-1">"${req.reason}"</p>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
             }
             
-            window.approveLeaveRequest = async function(requestId) {
+            window.approveScheduleRequest = async function(requestId) {
                 const request = appState.leaveRequests.find(r => r.id === requestId);
                 if (!request) return;
                 
                 try {
                     // Update request status
-                    await db.collection('leave_requests').doc(requestId).update({
+                    await db.collection('schedule_requests').doc(requestId).update({
                         status: 'approved',
                         approvedBy: appState.currentUserEmail,
                         approvedDate: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     
-                    // Add to plotted leaves
-                    await db.collection('plotted_leaves').add({
-                        managerId: request.managerId,
-                        managerName: request.managerName,
-                        leaveType: request.leaveType,
-                        startDate: request.startDate,
-                        endDate: request.endDate
-                    });
+                    // Auto-populate the weekly schedule based on request type
+                    const requestDate = request.requestDate || request.startDate;
+                    const endDate = request.endDate || requestDate;
+                    const weekDates = getWeekDateStrings(new Date(requestDate + 'T00:00:00'));
+                    const weekKey = weekDates[0];
                     
-                    showToast('Leave request approved!', 'success');
+                    // Get current schedule for the week
+                    const scheduleDoc = await db.collection("manager_schedules").doc(weekKey).get();
+                    let scheduleData = scheduleDoc.exists ? scheduleDoc.data() : {};
+                    
+                    // Update schedule based on request type
+                    const start = new Date(requestDate + 'T00:00:00');
+                    const end = new Date(endDate + 'T00:00:00');
+                    
+                    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                        const dateStr = getLocalDateString(d);
+                        const scheduleKey = `${request.managerId}_${dateStr}`;
+                        
+                        switch(request.type || request.leaveType) {
+                            case 'rest-day':
+                                scheduleData[scheduleKey] = { shift: 'OFF', time: '' };
+                                break;
+                            case 'vl':
+                            case 'VL':
+                                scheduleData[scheduleKey] = { shift: 'VL', time: '' };
+                                break;
+                            case 'sl':
+                            case 'SL':
+                                scheduleData[scheduleKey] = { shift: 'SL', time: '' };
+                                break;
+                            case 'pull-out':
+                                // For pull-out, just update the note
+                                if (scheduleData[scheduleKey]) {
+                                    scheduleData[scheduleKey].time = (scheduleData[scheduleKey].time || '') + ' (Pull-out)';
+                                }
+                                break;
+                            case 'change-time':
+                                if (scheduleData[scheduleKey]) {
+                                    scheduleData[scheduleKey].time = request.preferredTime || scheduleData[scheduleKey].time;
+                                }
+                                break;
+                        }
+                    }
+                    
+                    // Save updated schedule
+                    await db.collection("manager_schedules").doc(weekKey).set(scheduleData, { merge: true });
+                    
+                    showToast('Request approved and schedule updated!', 'success');
                     loadInitialData();
                 } catch (error) {
                     console.error(error);
@@ -2077,14 +2302,14 @@
                 }
             };
             
-            window.rejectLeaveRequest = async function(requestId) {
+            window.rejectScheduleRequest = async function(requestId) {
                 try {
-                    await db.collection('leave_requests').doc(requestId).update({
+                    await db.collection('schedule_requests').doc(requestId).update({
                         status: 'rejected',
                         rejectedBy: appState.currentUserEmail,
                         rejectedDate: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    showToast('Leave request rejected', 'success');
+                    showToast('Request rejected', 'success');
                     loadInitialData();
                 } catch (error) {
                     console.error(error);
@@ -3068,22 +3293,32 @@
                     }
                 });
                 
-                // --- LEAVE REQUEST MODAL ---
-                document.getElementById('new-leave-request-btn')?.addEventListener('click', () => {
-                    openLeaveRequestModal();
+                // --- EDIT MANAGER MODAL ---
+                document.getElementById('edit-manager-modal-close')?.addEventListener('click', () => {
+                    document.getElementById('edit-manager-modal')?.classList.add('hidden');
                 });
-                document.getElementById('leave-request-modal-close')?.addEventListener('click', () => {
-                    document.getElementById('leave-request-modal')?.classList.add('hidden');
+                document.getElementById('edit-manager-cancel-btn')?.addEventListener('click', () => {
+                    document.getElementById('edit-manager-modal')?.classList.add('hidden');
                 });
-                document.getElementById('leave-request-cancel-btn')?.addEventListener('click', () => {
-                    document.getElementById('leave-request-modal')?.classList.add('hidden');
-                });
-                document.getElementById('leave-request-submit-btn')?.addEventListener('click', submitLeaveRequest);
+                document.getElementById('edit-manager-save-btn')?.addEventListener('click', saveEditManager);
                 
-                // Check for conflicts when dates change
-                document.getElementById('leave-request-start')?.addEventListener('change', checkLeaveConflict);
-                document.getElementById('leave-request-end')?.addEventListener('change', checkLeaveConflict);
-                document.getElementById('leave-request-manager')?.addEventListener('change', checkLeaveConflict);
+                // --- SCHEDULE TAB DROPDOWN ---
+                document.getElementById('schedule-tab-select')?.addEventListener('change', (e) => {
+                    renderManagerSchedule();
+                });
+                
+                // --- SCHEDULE REQUEST MODAL ---
+                document.getElementById('new-schedule-request-btn')?.addEventListener('click', () => {
+                    openScheduleRequestModal();
+                });
+                document.getElementById('schedule-request-modal-close')?.addEventListener('click', () => {
+                    document.getElementById('schedule-request-modal')?.classList.add('hidden');
+                });
+                document.getElementById('schedule-request-cancel-btn')?.addEventListener('click', () => {
+                    document.getElementById('schedule-request-modal')?.classList.add('hidden');
+                });
+                document.getElementById('schedule-request-submit-btn')?.addEventListener('click', submitScheduleRequest);
+                document.getElementById('schedule-request-type')?.addEventListener('change', handleScheduleRequestTypeChange);
             }
             
             // --- EVENT HANDLER FUNCTIONS ---
@@ -3355,21 +3590,17 @@
 
             function handleManagerScheduleClicks(e) {
                 const target = e.target;
-                if (target.closest('.schedule-tab')) {
-                    const tab = target.closest('.schedule-tab').dataset.tab;
-                    document.querySelectorAll('.schedule-tab').forEach(btn => btn.classList.remove('active'));
-                    target.closest('.schedule-tab').classList.add('active');
-                    document.querySelectorAll('.schedule-content').forEach(content => content.classList.add('hidden'));
-                    document.getElementById(`${tab}-content`)?.classList.remove('hidden');
-                    renderManagerSchedule();
-                }
-                 else if (target.classList.contains('delete-manager-btn')) {
+                if (target.classList.contains('delete-manager-btn')) {
                     const managerId = target.dataset.id;
                     showConfirm('Are you sure you want to delete this manager? This cannot be undone.', () => {
                         db.collection("managers").doc(managerId).delete()
                             .then(() => { showToast("Manager deleted."); loadInitialData(); })
                             .catch(error => showToast("Error deleting manager.", "error"));
                     });
+                }
+                 else if (target.classList.contains('edit-manager-btn')) {
+                    const managerId = target.dataset.id;
+                    openEditManagerModal(managerId);
                 }
                  else if (target.closest('.schedule-cell')) {
                     if (appState.accessLevel === 2) return;
