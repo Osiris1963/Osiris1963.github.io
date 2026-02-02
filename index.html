@@ -891,10 +891,14 @@
                                     <div>
                                         <label for="manager-position" class="block font-semibold mb-1">Position</label>
                                         <select id="manager-position" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
-                                            <option value="SM">Shift Manager (SM)</option>
+                                            <option value="RGM">Restaurant General Manager (RGM)</option>
+                                            <option value="PDM">People Development Manager (PDM)</option>
+                                            <option value="FQM">Food Quality Manager (FQM)</option>
+                                            <option value="CEM">Customer Experience Manager (CEM)</option>
+                                            <option value="ADM">Admin Manager (ADM)</option>
                                             <option value="SL">Shift Leader (SL)</option>
-                                            <option value="ASM">Assistant Store Manager (ASM)</option>
-                                            <option value="Store Manager">Store Manager</option>
+                                            <option value="MT">Manager Trainee (MT)</option>
+                                            <option value="TL">Team Leader (TL)</option>
                                         </select>
                                     </div>
                                     <button type="submit" class="w-full bg-[#DA291C] text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition duration-300">Add Manager</button>
@@ -1247,10 +1251,14 @@
                 <div>
                     <label for="edit-manager-position" class="block font-semibold mb-1">Position</label>
                     <select id="edit-manager-position" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
-                        <option value="SM">Shift Manager (SM)</option>
+                        <option value="RGM">Restaurant General Manager (RGM)</option>
+                        <option value="PDM">People Development Manager (PDM)</option>
+                        <option value="FQM">Food Quality Manager (FQM)</option>
+                        <option value="CEM">Customer Experience Manager (CEM)</option>
+                        <option value="ADM">Admin Manager (ADM)</option>
                         <option value="SL">Shift Leader (SL)</option>
-                        <option value="ASM">Assistant Store Manager (ASM)</option>
-                        <option value="Store Manager">Store Manager</option>
+                        <option value="MT">Manager Trainee (MT)</option>
+                        <option value="TL">Team Leader (TL)</option>
                     </select>
                 </div>
             </div>
@@ -1282,11 +1290,8 @@
                     <select id="schedule-request-type" class="w-full p-2.5 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
                         <option value="">-- Select Request Type --</option>
                         <option value="rest-day">🏠 Request Rest Day (OFF)</option>
-                        <option value="pull-out">🚪 Request Pull-out (Early Leave)</option>
+                        <option value="pull-out">🚪 Request Pull-out</option>
                         <option value="swap-shift">🔄 Request Shift Swap</option>
-                        <option value="change-time">⏰ Request Time Change</option>
-                        <option value="vl">🏖️ Vacation Leave (VL)</option>
-                        <option value="sl">🏥 Sick Leave (SL)</option>
                         <option value="others">📋 Others</option>
                     </select>
                 </div>
@@ -1337,6 +1342,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             
             // --- FIREBASE INITIALIZATION ---
+            if (typeof firebase === 'undefined') {
+                console.error('Firebase SDK not loaded. Please check your internet connection.');
+                alert('Error: Could not load Firebase. Please refresh the page.');
+                return;
+            }
+            
             const firebaseConfig = {
               apiKey: "AIzaSyBlbxhzUp_TZd8oTrLxrY-E6gq-_XdiMCo",
               authDomain: "mcdonalds-san-carlos.firebaseapp.com",
@@ -1972,7 +1983,7 @@
                                 </div>
                                 <div>
                                     <p class="font-bold text-gray-800 dark:text-white">${manager.name}</p>
-                                    <p class="text-sm text-gray-500">${manager.position || 'SM'} ${tenureText ? '• ' + tenureText : ''}</p>
+                                    <p class="text-sm text-gray-500">${manager.position || 'SL'} ${tenureText ? '• ' + tenureText : ''}</p>
                                     ${manager.birthday ? `<p class="text-xs text-gray-400">🎂 ${new Date(manager.birthday + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>` : ''}
                                 </div>
                             </div>
@@ -2002,7 +2013,7 @@
                 document.getElementById('edit-manager-name').value = manager.name || '';
                 document.getElementById('edit-manager-birthday').value = manager.birthday || '';
                 document.getElementById('edit-manager-hire-date').value = manager.hireDate || '';
-                document.getElementById('edit-manager-position').value = manager.position || 'SM';
+                document.getElementById('edit-manager-position').value = manager.position || 'SL';
                 
                 modal.classList.remove('hidden');
             }
@@ -2020,7 +2031,7 @@
                     name: name,
                     birthday: document.getElementById('edit-manager-birthday').value || null,
                     hireDate: document.getElementById('edit-manager-hire-date').value || null,
-                    position: document.getElementById('edit-manager-position').value || 'SM'
+                    position: document.getElementById('edit-manager-position').value || 'SL'
                 };
                 
                 try {
@@ -2112,9 +2123,6 @@
                     'rest-day': 'Rest Day (OFF)',
                     'pull-out': 'Pull-out',
                     'swap-shift': 'Shift Swap',
-                    'change-time': 'Time Change',
-                    'vl': 'Vacation Leave',
-                    'sl': 'Sick Leave',
                     'others': 'Other Request'
                 };
                 
@@ -3410,7 +3418,7 @@
                             sortOrder: appState.managers.length,
                             birthday: birthdayInput?.value || null,
                             hireDate: hireDateInput?.value || null,
-                            position: positionInput?.value || 'SM',
+                            position: positionInput?.value || 'SL',
                             createdAt: firebase.firestore.FieldValue.serverTimestamp()
                         };
                         await db.collection("managers").add(managerData);
