@@ -21,12 +21,140 @@
             -webkit-tap-highlight-color: transparent;
             box-sizing: border-box;
         }
+        
+        /* Light Mode (default) */
+        :root {
+            --bg-primary: #F7F7F7;
+            --bg-secondary: #FFFFFF;
+            --bg-tertiary: #f8fafc;
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --text-muted: #9ca3af;
+            --border-color: #e5e7eb;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --input-bg: #FFFFFF;
+            --input-border: #d1d5db;
+            --hover-bg: #f3f4f6;
+        }
+        
+        /* Dark Mode */
+        .dark {
+            --bg-primary: #111827;
+            --bg-secondary: #1f2937;
+            --bg-tertiary: #374151;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --text-muted: #9ca3af;
+            --border-color: #374151;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+            --input-bg: #374151;
+            --input-border: #4b5563;
+            --hover-bg: #374151;
+        }
+        
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #F7F7F7;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
             padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
+        
+        /* Dark mode overrides */
+        .dark #login-screen {
+            background-color: var(--bg-primary);
+        }
+        .dark #login-screen > div {
+            background-color: var(--bg-secondary);
+            border-color: var(--border-color);
+        }
+        .dark #app-container {
+            background-color: var(--bg-primary);
+        }
+        .dark header {
+            background-color: var(--bg-secondary) !important;
+            border-color: var(--border-color) !important;
+        }
+        .dark .stat-card,
+        .dark .bg-white {
+            background-color: var(--bg-secondary) !important;
+            border-color: var(--border-color) !important;
+        }
+        .dark .text-gray-800,
+        .dark .text-gray-700,
+        .dark .text-gray-900 {
+            color: var(--text-primary) !important;
+        }
+        .dark .text-gray-600,
+        .dark .text-gray-500 {
+            color: var(--text-secondary) !important;
+        }
+        .dark .text-gray-400 {
+            color: var(--text-muted) !important;
+        }
+        .dark .bg-gray-50,
+        .dark .bg-gray-100 {
+            background-color: var(--bg-tertiary) !important;
+        }
+        .dark .border-gray-200,
+        .dark .border-gray-300 {
+            border-color: var(--border-color) !important;
+        }
+        .dark input,
+        .dark select,
+        .dark textarea {
+            background-color: var(--input-bg) !important;
+            border-color: var(--input-border) !important;
+            color: var(--text-primary) !important;
+        }
+        .dark input::placeholder {
+            color: var(--text-muted) !important;
+        }
+        .dark .schedule-table th {
+            background-color: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+        }
+        .dark .schedule-table td {
+            background-color: var(--bg-secondary) !important;
+            border-color: var(--border-color) !important;
+        }
+        .dark .schedule-cell:hover {
+            background-color: var(--hover-bg) !important;
+        }
+        .dark .calendar-header {
+            background-color: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+        }
+        .dark .calendar-day {
+            background-color: var(--bg-secondary) !important;
+        }
+        .dark .calendar-day.other-month {
+            background-color: var(--bg-tertiary) !important;
+        }
+        .dark #mobile-nav,
+        .dark #main-nav,
+        .dark #more-menu-popup > div {
+            background-color: var(--bg-secondary) !important;
+            border-color: var(--border-color) !important;
+        }
+        .dark .nav-button:not(.active) {
+            color: var(--text-secondary) !important;
+        }
+        .dark .schedule-tab:not(.active) {
+            color: var(--text-secondary) !important;
+        }
+        .dark .schedule-tab:hover:not(.active) {
+            background-color: var(--bg-tertiary) !important;
+        }
+        .dark #schedule-modal > div,
+        .dark #leave-modal > div,
+        .dark #confirm-modal > div,
+        .dark #leave-request-modal > div {
+            background-color: var(--bg-secondary) !important;
+            border-color: var(--border-color) !important;
+        }
+        
         .nav-button {
             transition: all 0.3s ease;
         }
@@ -410,7 +538,36 @@
                         <button data-view="historical" class="nav-button px-3 py-2 rounded-lg font-semibold">History</button>
                         <button data-view="admin" class="nav-button px-3 py-2 rounded-lg font-semibold hidden">Admin</button>
                     </nav>
-                     <div class="flex items-center space-x-4">
+                     <div class="flex items-center space-x-2 md:space-x-4">
+                        <!-- Birthday/Anniversary Notification Bell -->
+                        <div class="relative">
+                            <button id="notification-bell" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition relative">
+                                <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                                </svg>
+                                <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold hidden">0</span>
+                            </button>
+                            <!-- Notification Dropdown -->
+                            <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hidden z-50">
+                                <div class="p-3 border-b border-gray-200 dark:border-gray-700">
+                                    <h3 class="font-bold text-gray-800 dark:text-white">🎂 Celebrations</h3>
+                                </div>
+                                <div id="notification-list" class="max-h-64 overflow-y-auto">
+                                    <p class="p-4 text-gray-500 text-sm text-center">No celebrations today</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Dark Mode Toggle -->
+                        <button id="dark-mode-toggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="Toggle Dark Mode">
+                            <svg id="dark-mode-icon-sun" class="w-6 h-6 text-gray-600 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                            </svg>
+                            <svg id="dark-mode-icon-moon" class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                            </svg>
+                        </button>
+                        
                         <p id="user-greeting" class="hidden md:block text-sm font-semibold"></p>
                         <button id="logout-btn" class="hidden md:flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition">
                             <span>Logout</span>
@@ -705,20 +862,58 @@
                     </div>
 
                     <div id="manage-managers-content" class="schedule-content hidden">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <!-- Add New Manager Form -->
+                            <div class="lg:col-span-1">
                                 <h3 class="text-xl font-bold mb-4">Add New Manager</h3>
                                 <form id="add-manager-form" class="space-y-4">
                                     <div>
                                         <label for="manager-name" class="block font-semibold mb-1">Manager Name</label>
-                                        <input type="text" id="manager-name" class="w-full p-2 rounded-lg border-2 border-gray-200" required>
+                                        <input type="text" id="manager-name" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none" required>
+                                    </div>
+                                    <div>
+                                        <label for="manager-birthday" class="block font-semibold mb-1">Birthday</label>
+                                        <input type="date" id="manager-birthday" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                                    </div>
+                                    <div>
+                                        <label for="manager-hire-date" class="block font-semibold mb-1">Hire Date (Work Anniversary)</label>
+                                        <input type="date" id="manager-hire-date" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                                    </div>
+                                    <div>
+                                        <label for="manager-position" class="block font-semibold mb-1">Position</label>
+                                        <select id="manager-position" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                                            <option value="SM">Shift Manager (SM)</option>
+                                            <option value="SL">Shift Leader (SL)</option>
+                                            <option value="ASM">Assistant Store Manager (ASM)</option>
+                                            <option value="Store Manager">Store Manager</option>
+                                        </select>
                                     </div>
                                     <button type="submit" class="w-full bg-[#DA291C] text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition duration-300">Add Manager</button>
                                 </form>
                             </div>
-                            <div>
-                                <h3 class="text-xl font-bold mb-4">Current Managers</h3>
+                            
+                            <!-- Current Managers List -->
+                            <div class="lg:col-span-2">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-xl font-bold">Team Members</h3>
+                                </div>
                                 <div id="manager-list-container" class="space-y-3"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Leave Request Section -->
+                        <div class="mt-8 pt-8 border-t border-gray-200">
+                            <div class="flex justify-between items-center mb-4">
+                                <div>
+                                    <h3 class="text-xl font-bold">Leave Requests</h3>
+                                    <p class="text-gray-500 text-sm">Auto-approval: Single-day VL requests are auto-approved if no conflict exists</p>
+                                </div>
+                                <button id="new-leave-request-btn" class="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold text-sm hover:bg-green-700 transition">
+                                    + New Request
+                                </button>
+                            </div>
+                            <div id="leave-requests-container" class="space-y-3">
+                                <p class="text-gray-500 text-center py-4">No pending leave requests</p>
                             </div>
                         </div>
                     </div>
@@ -1007,6 +1202,63 @@
         </div>
     </div>
 
+    <!-- Leave Request Modal -->
+    <div id="leave-request-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-xl bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Leave Request</h3>
+                <button id="leave-request-modal-close" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            
+            <!-- Auto-approval info -->
+            <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p class="text-sm text-green-800">✓ <strong>Auto-approval:</strong> Single-day VL requests are automatically approved if no schedule conflict exists.</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block font-semibold mb-1">Manager</label>
+                    <select id="leave-request-manager" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none"></select>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Leave Type</label>
+                    <select id="leave-request-type" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                        <option value="VL">Vacation Leave (VL)</option>
+                        <option value="SL">Sick Leave (SL)</option>
+                        <option value="HL">Holiday Leave (HL)</option>
+                        <option value="EL">Emergency Leave (EL)</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-semibold mb-1">Start Date</label>
+                        <input type="date" id="leave-request-start" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">End Date</label>
+                        <input type="date" id="leave-request-end" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Reason (Optional)</label>
+                    <textarea id="leave-request-reason" rows="2" class="w-full p-2 rounded-lg border-2 border-gray-200 focus:border-[#DA291C] focus:outline-none resize-none" placeholder="Enter reason for leave..."></textarea>
+                </div>
+                
+                <!-- Conflict Warning -->
+                <div id="leave-conflict-warning" class="hidden p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p class="text-sm text-yellow-800">⚠️ <strong>Warning:</strong> <span id="leave-conflict-message">There may be a scheduling conflict.</span></p>
+                </div>
+            </div>
+            
+            <div class="mt-6 space-y-2">
+                <button id="leave-request-submit-btn" class="w-full px-4 py-3 bg-green-600 text-white text-base font-bold rounded-lg hover:bg-green-700 transition">Submit Request</button>
+                <button id="leave-request-cancel-btn" class="w-full px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-lg hover:bg-gray-300 transition">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ****** FULLY IMPLEMENTED SCRIPT WITH ALL FIXES ****** -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -1045,7 +1297,16 @@
                 currentUserEmail: null,
                 currentUserManagerId: null,
                 currentUserManagerName: null,
+                leaveRequests: [],
+                darkMode: localStorage.getItem('darkMode') === 'true',
             };
+            
+            // --- DARK MODE INITIALIZATION ---
+            if (appState.darkMode) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('dark-mode-icon-sun')?.classList.remove('hidden');
+                document.getElementById('dark-mode-icon-moon')?.classList.add('hidden');
+            }
             
             // --- UI ELEMENT SELECTORS ---
             const UI = {
@@ -1142,7 +1403,8 @@
                         evalLogSnapshot,
                         evalHistoricalSnapshot,
                         managersSnapshot,
-                        leavesSnapshot
+                        leavesSnapshot,
+                        leaveRequestsSnapshot
                     ] = await Promise.all([
                         db.collection("forecast_log").orderBy("generated_on", "desc").limit(15).get(),
                         db.collection("historical_data").orderBy("date", "desc").get(),
@@ -1151,7 +1413,8 @@
                         db.collection("forecast_log").where("forecast_for_date", ">=", thirtyFiveDaysAgo).get(),
                         db.collection("historical_data").where("date", ">=", thirtyFiveDaysAgo).orderBy("date", "desc").get(),
                         db.collection("managers").orderBy("sortOrder").get(),
-                        db.collection("plotted_leaves").get()
+                        db.collection("plotted_leaves").get(),
+                        db.collection("leave_requests").orderBy("requestDate", "desc").get()
                     ]);
 
                     appState.historicalData = allHistoricalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1159,9 +1422,13 @@
                     appState.usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     appState.managers = managersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     appState.plottedLeaves = leavesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    appState.leaveRequests = leaveRequestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     
                     processForecastData(dashboardLogSnapshot);
                     processEvaluationData(evalLogSnapshot, evalHistoricalSnapshot);
+                    
+                    // Check for birthdays and anniversaries
+                    checkCelebrations();
                     
                     updateView();
                     setupDynamicContent();
@@ -1171,6 +1438,82 @@
                     showToast("Error loading application data. Some features may not work.", "error");
                 } finally {
                     UI.loadingOverlay.style.display = 'none';
+                }
+            }
+            
+            // --- BIRTHDAY & ANNIVERSARY CELEBRATIONS ---
+            function checkCelebrations() {
+                const today = new Date();
+                const todayMonth = today.getMonth() + 1;
+                const todayDay = today.getDate();
+                const celebrations = [];
+                
+                appState.managers.forEach(manager => {
+                    // Check birthday
+                    if (manager.birthday) {
+                        const bday = new Date(manager.birthday + 'T00:00:00');
+                        if (bday.getMonth() + 1 === todayMonth && bday.getDate() === todayDay) {
+                            celebrations.push({
+                                type: 'birthday',
+                                name: manager.name,
+                                icon: '🎂',
+                                message: `Happy Birthday, ${manager.name}!`
+                            });
+                        }
+                        // Check upcoming (next 7 days)
+                        for (let i = 1; i <= 7; i++) {
+                            const futureDate = new Date(today);
+                            futureDate.setDate(today.getDate() + i);
+                            if (bday.getMonth() === futureDate.getMonth() && bday.getDate() === futureDate.getDate()) {
+                                celebrations.push({
+                                    type: 'birthday-upcoming',
+                                    name: manager.name,
+                                    icon: '🎂',
+                                    message: `${manager.name}'s birthday in ${i} day${i > 1 ? 's' : ''}`
+                                });
+                            }
+                        }
+                    }
+                    
+                    // Check work anniversary
+                    if (manager.hireDate) {
+                        const hireDate = new Date(manager.hireDate + 'T00:00:00');
+                        if (hireDate.getMonth() + 1 === todayMonth && hireDate.getDate() === todayDay) {
+                            const years = today.getFullYear() - hireDate.getFullYear();
+                            if (years > 0) {
+                                celebrations.push({
+                                    type: 'anniversary',
+                                    name: manager.name,
+                                    icon: '🎉',
+                                    message: `${manager.name}'s ${years}-year work anniversary!`
+                                });
+                            }
+                        }
+                    }
+                });
+                
+                // Update notification bell
+                const badge = document.getElementById('notification-badge');
+                const notificationList = document.getElementById('notification-list');
+                
+                if (celebrations.length > 0) {
+                    badge?.classList.remove('hidden');
+                    badge.textContent = celebrations.length;
+                    
+                    notificationList.innerHTML = celebrations.map(c => `
+                        <div class="p-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-2xl">${c.icon}</span>
+                                <div>
+                                    <p class="font-semibold text-gray-800 dark:text-white">${c.message}</p>
+                                    <p class="text-xs text-gray-500">${c.type === 'birthday' || c.type === 'anniversary' ? 'Today!' : 'Upcoming'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    badge?.classList.add('hidden');
+                    notificationList.innerHTML = '<p class="p-4 text-gray-500 text-sm text-center">No celebrations this week</p>';
                 }
             }
 
@@ -1510,14 +1853,244 @@
                 }
                 appState.managers.forEach(manager => {
                     const div = document.createElement('div');
-                    div.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg';
+                    div.className = 'bg-gray-50 dark:bg-gray-700 p-4 rounded-xl border border-gray-200 dark:border-gray-600';
+                    
+                    // Calculate tenure
+                    let tenureText = '';
+                    if (manager.hireDate) {
+                        const hireDate = new Date(manager.hireDate);
+                        const today = new Date();
+                        const months = (today.getFullYear() - hireDate.getFullYear()) * 12 + (today.getMonth() - hireDate.getMonth());
+                        tenureText = months >= 12 ? `${Math.floor(months/12)}y ${months%12}m` : `${months}m`;
+                    }
+                    
                     div.innerHTML = `
-                        <p class="font-medium">${manager.name}</p>
-                        <button data-id="${manager.id}" class="delete-manager-btn text-red-500 hover:text-red-700 font-semibold">Delete</button>
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-[#DA291C] rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                    ${manager.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <p class="font-bold text-gray-800 dark:text-white">${manager.name}</p>
+                                    <p class="text-sm text-gray-500">${manager.position || 'SM'} ${tenureText ? '• ' + tenureText : ''}</p>
+                                    ${manager.birthday ? `<p class="text-xs text-gray-400">🎂 ${new Date(manager.birthday + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <button data-id="${manager.id}" class="edit-manager-btn px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition">
+                                ✏️ Edit
+                            </button>
+                            <button data-id="${manager.id}" class="delete-manager-btn px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition">
+                                🗑️ Delete
+                            </button>
+                        </div>
                     `;
                     container.appendChild(div);
                 });
+                
+                // Render leave requests
+                renderLeaveRequests();
             }
+            
+            // --- LEAVE REQUEST FUNCTIONS ---
+            function openLeaveRequestModal() {
+                const modal = document.getElementById('leave-request-modal');
+                const managerSelect = document.getElementById('leave-request-manager');
+                
+                // Populate manager dropdown
+                managerSelect.innerHTML = appState.managers.map(m => 
+                    `<option value="${m.id}">${m.name}</option>`
+                ).join('');
+                
+                // Set default dates
+                const today = getLocalDateString(new Date());
+                document.getElementById('leave-request-start').value = today;
+                document.getElementById('leave-request-end').value = today;
+                document.getElementById('leave-request-type').value = 'VL';
+                document.getElementById('leave-request-reason').value = '';
+                document.getElementById('leave-conflict-warning').classList.add('hidden');
+                
+                modal.classList.remove('hidden');
+            }
+            
+            function checkLeaveConflict() {
+                const managerId = document.getElementById('leave-request-manager').value;
+                const startDate = document.getElementById('leave-request-start').value;
+                const endDate = document.getElementById('leave-request-end').value;
+                const warning = document.getElementById('leave-conflict-warning');
+                const message = document.getElementById('leave-conflict-message');
+                
+                if (!managerId || !startDate || !endDate) {
+                    warning.classList.add('hidden');
+                    return;
+                }
+                
+                // Check for existing scheduled shifts
+                const start = new Date(startDate + 'T00:00:00');
+                const end = new Date(endDate + 'T00:00:00');
+                let hasConflict = false;
+                let conflictDates = [];
+                
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    const dateStr = getLocalDateString(d);
+                    const scheduleKey = `${managerId}_${dateStr}`;
+                    if (appState.managerSchedules[scheduleKey] && 
+                        !['OFF', 'VL', 'SL', 'HL', 'Leave'].includes(appState.managerSchedules[scheduleKey].shift)) {
+                        hasConflict = true;
+                        conflictDates.push(dateStr);
+                    }
+                }
+                
+                // Also check how many managers would be off
+                // (simplified - would need more complex logic in production)
+                
+                if (hasConflict) {
+                    message.textContent = `Scheduled shifts exist on: ${conflictDates.join(', ')}`;
+                    warning.classList.remove('hidden');
+                } else {
+                    warning.classList.add('hidden');
+                }
+            }
+            
+            async function submitLeaveRequest() {
+                const managerId = document.getElementById('leave-request-manager').value;
+                const leaveType = document.getElementById('leave-request-type').value;
+                const startDate = document.getElementById('leave-request-start').value;
+                const endDate = document.getElementById('leave-request-end').value;
+                const reason = document.getElementById('leave-request-reason').value;
+                
+                if (!managerId || !startDate || !endDate) {
+                    return showToast('Please fill all required fields', 'error');
+                }
+                
+                const manager = appState.managers.find(m => m.id === managerId);
+                const start = new Date(startDate + 'T00:00:00');
+                const end = new Date(endDate + 'T00:00:00');
+                const dayCount = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                
+                // Auto-approval logic: Single-day VL with no conflicts
+                const isSingleDay = dayCount === 1;
+                const isVL = leaveType === 'VL';
+                const hasNoConflict = document.getElementById('leave-conflict-warning').classList.contains('hidden');
+                const autoApprove = isSingleDay && isVL && hasNoConflict;
+                
+                const requestData = {
+                    managerId,
+                    managerName: manager?.name,
+                    leaveType,
+                    startDate,
+                    endDate,
+                    dayCount,
+                    reason,
+                    status: autoApprove ? 'approved' : 'pending',
+                    requestDate: firebase.firestore.FieldValue.serverTimestamp(),
+                    autoApproved: autoApprove,
+                    approvedBy: autoApprove ? 'System (Auto-approved)' : null,
+                    approvedDate: autoApprove ? firebase.firestore.FieldValue.serverTimestamp() : null
+                };
+                
+                try {
+                    await db.collection('leave_requests').add(requestData);
+                    
+                    // If auto-approved, also add to plotted_leaves
+                    if (autoApprove) {
+                        await db.collection('plotted_leaves').add({
+                            managerId,
+                            managerName: manager?.name,
+                            leaveType,
+                            startDate,
+                            endDate
+                        });
+                        showToast('✅ Leave auto-approved and added to calendar!', 'success');
+                    } else {
+                        showToast('Leave request submitted for approval', 'success');
+                    }
+                    
+                    document.getElementById('leave-request-modal').classList.add('hidden');
+                    loadInitialData();
+                } catch (error) {
+                    console.error(error);
+                    showToast('Error submitting request', 'error');
+                }
+            }
+            
+            function renderLeaveRequests() {
+                const container = document.getElementById('leave-requests-container');
+                if (!container) return;
+                
+                const pendingRequests = appState.leaveRequests.filter(r => r.status === 'pending');
+                
+                if (pendingRequests.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-4">No pending leave requests</p>';
+                    return;
+                }
+                
+                container.innerHTML = pendingRequests.map(req => `
+                    <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-xl">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-bold text-gray-800">${req.managerName}</p>
+                                <p class="text-sm text-gray-600">${req.leaveType} • ${req.dayCount} day${req.dayCount > 1 ? 's' : ''}</p>
+                                <p class="text-sm text-gray-500">${req.startDate} ${req.endDate !== req.startDate ? '→ ' + req.endDate : ''}</p>
+                                ${req.reason ? `<p class="text-xs text-gray-400 mt-1">"${req.reason}"</p>` : ''}
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="approveLeaveRequest('${req.id}')" class="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600">
+                                    ✓ Approve
+                                </button>
+                                <button onclick="rejectLeaveRequest('${req.id}')" class="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600">
+                                    ✗ Reject
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            window.approveLeaveRequest = async function(requestId) {
+                const request = appState.leaveRequests.find(r => r.id === requestId);
+                if (!request) return;
+                
+                try {
+                    // Update request status
+                    await db.collection('leave_requests').doc(requestId).update({
+                        status: 'approved',
+                        approvedBy: appState.currentUserEmail,
+                        approvedDate: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    // Add to plotted leaves
+                    await db.collection('plotted_leaves').add({
+                        managerId: request.managerId,
+                        managerName: request.managerName,
+                        leaveType: request.leaveType,
+                        startDate: request.startDate,
+                        endDate: request.endDate
+                    });
+                    
+                    showToast('Leave request approved!', 'success');
+                    loadInitialData();
+                } catch (error) {
+                    console.error(error);
+                    showToast('Error approving request', 'error');
+                }
+            };
+            
+            window.rejectLeaveRequest = async function(requestId) {
+                try {
+                    await db.collection('leave_requests').doc(requestId).update({
+                        status: 'rejected',
+                        rejectedBy: appState.currentUserEmail,
+                        rejectedDate: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    showToast('Leave request rejected', 'success');
+                    loadInitialData();
+                } catch (error) {
+                    console.error(error);
+                    showToast('Error rejecting request', 'error');
+                }
+            };
 
             async function loadScheduleForWeek(week) {
                 const weekKey = week[0];
@@ -2467,6 +3040,50 @@
                 
                 // Add event listener for the new GY/OT cutoff dropdown
                 document.getElementById('gy-ot-cutoff-select')?.addEventListener('change', renderGyOtTracking);
+                
+                // --- DARK MODE TOGGLE ---
+                document.getElementById('dark-mode-toggle')?.addEventListener('click', () => {
+                    appState.darkMode = !appState.darkMode;
+                    document.documentElement.classList.toggle('dark', appState.darkMode);
+                    localStorage.setItem('darkMode', appState.darkMode);
+                    
+                    // Toggle icons
+                    document.getElementById('dark-mode-icon-sun')?.classList.toggle('hidden', !appState.darkMode);
+                    document.getElementById('dark-mode-icon-moon')?.classList.toggle('hidden', appState.darkMode);
+                    
+                    showToast(appState.darkMode ? '🌙 Dark mode enabled' : '☀️ Light mode enabled', 'success');
+                });
+                
+                // --- NOTIFICATION BELL ---
+                document.getElementById('notification-bell')?.addEventListener('click', () => {
+                    const dropdown = document.getElementById('notification-dropdown');
+                    dropdown?.classList.toggle('hidden');
+                });
+                // Close notification dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    const dropdown = document.getElementById('notification-dropdown');
+                    const bell = document.getElementById('notification-bell');
+                    if (dropdown && !dropdown.contains(e.target) && !bell?.contains(e.target)) {
+                        dropdown.classList.add('hidden');
+                    }
+                });
+                
+                // --- LEAVE REQUEST MODAL ---
+                document.getElementById('new-leave-request-btn')?.addEventListener('click', () => {
+                    openLeaveRequestModal();
+                });
+                document.getElementById('leave-request-modal-close')?.addEventListener('click', () => {
+                    document.getElementById('leave-request-modal')?.classList.add('hidden');
+                });
+                document.getElementById('leave-request-cancel-btn')?.addEventListener('click', () => {
+                    document.getElementById('leave-request-modal')?.classList.add('hidden');
+                });
+                document.getElementById('leave-request-submit-btn')?.addEventListener('click', submitLeaveRequest);
+                
+                // Check for conflicts when dates change
+                document.getElementById('leave-request-start')?.addEventListener('change', checkLeaveConflict);
+                document.getElementById('leave-request-end')?.addEventListener('change', checkLeaveConflict);
+                document.getElementById('leave-request-manager')?.addEventListener('change', checkLeaveConflict);
             }
             
             // --- EVENT HANDLER FUNCTIONS ---
@@ -2546,14 +3163,31 @@
             async function handleAddManager(e) {
                 e.preventDefault();
                 const nameInput = document.getElementById('manager-name');
+                const birthdayInput = document.getElementById('manager-birthday');
+                const hireDateInput = document.getElementById('manager-hire-date');
+                const positionInput = document.getElementById('manager-position');
+                
                 const name = nameInput.value.trim();
                 if (name) {
                     try {
-                        await db.collection("managers").add({ name: name, sortOrder: appState.managers.length });
+                        const managerData = { 
+                            name: name, 
+                            sortOrder: appState.managers.length,
+                            birthday: birthdayInput?.value || null,
+                            hireDate: hireDateInput?.value || null,
+                            position: positionInput?.value || 'SM',
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        await db.collection("managers").add(managerData);
                         showToast("Manager added!", "success");
                         nameInput.value = '';
+                        if (birthdayInput) birthdayInput.value = '';
+                        if (hireDateInput) hireDateInput.value = '';
                         loadInitialData();
-                    } catch (error) { showToast("Error adding manager.", "error"); }
+                    } catch (error) { 
+                        console.error(error);
+                        showToast("Error adding manager.", "error"); 
+                    }
                 }
             }
             
